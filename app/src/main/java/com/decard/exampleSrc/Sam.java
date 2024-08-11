@@ -1,5 +1,6 @@
 package com.decard.exampleSrc;
 
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.decard.NDKMethod.BasicOper;
@@ -377,6 +378,63 @@ public class Sam {
             // TextDump("SAM decline", 0);
             return 0;
         }
+    }
+
+    public String SendAuth1V2ResultToSAM(int[] felicaResLen,
+                                byte[] felicaResponse,
+                                int[] auth2V2CommandLen,
+                                byte[] auth2V2Command)
+    {
+        byte[]	sendBuf = new byte[262];
+        byte[]	samRes = new byte[262];
+//        int	sendLen, samResLen;
+
+        //Send back the response from FeliCa Card to RW-SAM(RC-S500)
+        sendBuf[0] =			0x01;	// Dispatcher
+        sendBuf[1] =			0x00;	// Reserved
+        sendBuf[2] =			0x00;	// Reserved
+        System.arraycopy(felicaResponse,0,sendBuf,3,felicaResLen[0]); //response of FeliCa Card
+//        samResLen = 0xFF;
+
+        // Send packets to SAM
+        String result = this.transitDataToSam(sendBuf, 0xFF);
+        if(TextUtils.isEmpty(result))
+        {
+            //PrintText("Card result Error\n");
+            return null;
+        }
+
+	    auth2V2CommandLen[0] = result.length() - 3;
+        System.arraycopy(samRes,3,auth2V2Command,0,auth2V2CommandLen[0]);
+
+        return result;
+    }
+    public  int sendAuth1V2ResultToSAM(int felicaResLen, byte[] felicaResponse, int[] auth2V2CommandLen, byte[] auth2V2Command) {
+        long ret = 0;
+        byte[] sendBuf = new byte[262];
+        byte[] samRes = new byte[262];
+        int sendLen, samResLen;
+
+        // Prepare the buffer to send back the response from FeliCa Card to RW-SAM(RC-S500)
+        sendBuf[0] = 0x01;  // Dispatcher
+        sendBuf[1] = 0x00;  // Reserved
+        sendBuf[2] = 0x00;  // Reserved
+        System.arraycopy(felicaResponse, 0, sendBuf, 3, felicaResLen); // response of FeliCa Card
+        sendLen = 3 + felicaResLen;
+        samResLen = 0xFF;
+
+        // Send packets to SAM
+        String result = transitDataToSam(sendBuf, 0xFF);
+        if (!TextUtils.isEmpty(result)) {
+            // PrintText("Card result Error\n");
+            return 0;
+        }
+        System.arraycopy(Utils.hexToByte(result),0,samRes,0,result.length()/2);
+
+        auth2V2CommandLen[0] = samResLen - 3;
+        System.arraycopy(samRes, 3, auth2V2Command, 0, auth2V2CommandLen[0]);
+
+        return 1;
     }
 
 }
