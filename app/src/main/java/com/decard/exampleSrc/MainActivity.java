@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -64,6 +65,7 @@ import java.util.Random;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = MainActivity.class.getSimpleName();
@@ -872,7 +874,7 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
-    int TSAM(int samSlot) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    int TSAM(int samSlot) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, ShortBufferException {
         String apdu = "0084000008";
         String rwSamNumber = "";
         String[] resultArr;
@@ -931,6 +933,24 @@ public class MainActivity extends AppCompatActivity {
         }else {
             appendLog("sam auth2 result check failed");
             return -9;
+        }
+        FelicaCard felicaCard = new FelicaCard(sam);
+        String res = felicaCard.detectFelicaCard();
+        if(!TextUtils.isEmpty(res)){
+            appendLog("Felica card detect successful---->"+res);
+            appendLog("IDm---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getIDm()));
+            appendLog("PMm---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getPMm()));
+            appendLog("SystemCode---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getSystemCode()));
+        } else{
+            appendLog("Felica card detect failed");
+            return -10;
+        }
+        int i = felicaCard.iWaitForAndAnalyzeFeliCa();
+        if(i!=0){
+            appendLog("Felica card analyze successfully");
+        } else{
+            appendLog("Can not analyze Felica card");
+            return -11;
         }
         /*resultArr = BasicOper.dc_setcpu(samSlot).split("\\|", -1);
         if (resultArr[0].equals("0000")) {
@@ -1088,7 +1108,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onSam1(View v) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public void onSam1(View v) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, ShortBufferException {
         clearLog();
         appendLog("Test SAM1 card.........");
         int st = TSAM(3);
