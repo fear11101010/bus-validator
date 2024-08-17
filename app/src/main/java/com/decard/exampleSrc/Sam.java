@@ -152,11 +152,15 @@ public class Sam {
 
 
     private String transitDataToSam(byte[] sendBuf, int responseLength) {
-        byte[] apdu = new byte[]{(byte) 0xA0, (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) sendBuf.length};
+        byte[] lc = sendBuf.length<=254?new byte[]{(byte) (sendBuf.length&0xFF)}:new byte[]{(byte)((sendBuf.length>>16)&0xFF),(byte)((sendBuf.length>>8)&0xFF),(byte)(sendBuf.length&0xFF)};
+        byte[] apdu = new byte[]{(byte) 0xA0, (byte) 0x00, (byte) 0x00, (byte) 0x00};
+        apdu = mergeArray(apdu,lc);
         Log.d("sam_transitDataToSam_apdu", "apdu: " + HexDump.dumpHexString(apdu));
         byte[] sAPDU = this.mergeArray(apdu, sendBuf);
-        String hexAPDU = Utils.byteToHex(sAPDU).concat("00");
-        String[] result = BasicOper.dc_TransmitApdu(0xFF, hexAPDU).split("\\|");
+        byte[] le = sendBuf.length<=254?new byte[]{0x00}:new byte[]{0x00,0x00};
+        sAPDU = mergeArray(sAPDU,le);
+        String hexAPDU = Utils.byteToHex(sAPDU);
+        String[] result = BasicOper.dc_TransmitApdu(0xFF,hexAPDU).split("\\|");
 //        String[] result = BasicOper.dc_cpuapduInt_hex(hexAPDU).split("\\|");
         if (Objects.equals(result[0], "0000")) {
             byte[] rAPDU = HexDump.hexStringToByteArray(result[1]);
@@ -213,7 +217,7 @@ public class Sam {
     }
 
     public void encryptData(byte command, byte subCommand, int felicaCommandLength,
-                            byte[] felicaCommandParams, byte[] payload, byte[] mac) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, ShortBufferException, BadPaddingException, InvalidAlgorithmParameterException {
+                            byte[] felicaCommandParams, byte[] payload, byte[] mac) throws Exception {
         byte[] b0 = new byte[16];
         byte[] b1 = new byte[16];
         byte[] rawMac = new byte[16];
@@ -246,7 +250,7 @@ public class Sam {
         Arrays.fill(payload, (byte) 0x00);
 
         SecretKeySpec keySpec = new SecretKeySpec(kYtr, "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, keySpec);
         int i = 0;
         for (i = 0; i + 15 < felicaCommandLength; i += 16) {
@@ -283,8 +287,8 @@ public class Sam {
         System.arraycopy(b1, 0, workBuf, 16, 16);
         System.arraycopy(felicaCommandParams, 0, workBuf, 16+16, felicaCommandLength);
         this.calculateMacRaw(workBuf, 16 + 16 + felicaCommandLength, rawMac);
-        byte[] jCMac = new byte[16];
-        this.calculateMacUsingCMac(workBuf, 16 + 16 + felicaCommandLength, jCMac);
+//        byte[] jCMac = new byte[16];
+//        this.calculateMacUsingCMac(workBuf, 16 + 16 + felicaCommandLength, jCMac);
 
         // Encrypt mac
 
@@ -299,11 +303,43 @@ public class Sam {
         cipher = Cipher.getInstance("AES/CTR/NoPadding");
         IvParameterSpec ivParameterSpec = new IvParameterSpec(ctrBlock);
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParameterSpec);
-        byte[] jMac = new byte[8];
-        cipher.doFinal(rawMac, 0, 8, jMac);
-        cipher.doFinal(jCMac, 0, 8, mac);
+//        byte[] jMac = new byte[8];
+        byte[] bytes = cipher.doFinal(rawMac);
+        byte[] bytes1 = encryptAESCTR(rawMac,kYtr,ctrBlock);
+
+        System.arraycopy(bytes,0,mac,0,8);
+//        cipher.doFinal(jCMac, 0, 8, mac);
         System.arraycopy(tempPayload, 0, payload, 0, tempPayload.length);
 
+    }
+
+    public byte[] encryptAESCTR(byte[] plaintext, byte[] key, byte[] iv) throws Exception {
+        SecretKeySpec secretKey = new SecretKeySpec(key, "AES");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+
+        byte[] counter = Arrays.copyOf(iv, 16);
+        byte[] encryptedCounter = new byte[16];
+        byte[] output = new byte[plaintext.length];
+
+        for (int i = 0; i < plaintext.length; i += 16) {
+            encryptedCounter = cipher.doFinal(counter);
+            int blockSize = Math.min(16, plaintext.length - i);
+            for (int j = 0; j < blockSize; j++) {
+                output[i + j] = (byte) (plaintext[i + j] ^ encryptedCounter[j]);
+            }
+            incrementCounter(counter);
+        }
+
+        return output;
+    }
+
+    private void incrementCounter(byte[] counter) {
+        for (int i = counter.length - 1; i >= 0; i--) {
+            if (++counter[i] != 0) {
+                break;
+            }
+        }
     }
 
     private byte[] mergeArray(byte[] arr1, byte[] arr2) {
@@ -318,7 +354,7 @@ public class Sam {
                                   int felicaCmdParamsLen,
                                   byte[] felicaCmdParams,
                                   int[] felicaCommandLen,
-                                  byte[] felicaCommand) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+                                  byte[] felicaCommand) throws Exception {
         // Call the method equivalent to AskFeliCaCmdToSAMSC in Java
         return askFeliCaCmdToSAMSC(commandCode,
                 (byte) 0x00,  // SubCommandCode is 0x00
@@ -333,7 +369,7 @@ public class Sam {
                                     int felicaCmdParamsLen,
                                     byte[] felicaCmdParams,
                                     int[] felicaCommandLen,
-                                    byte[] felicaCommand) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+                                    byte[] felicaCommand) throws Exception {
 
         long ret;
         byte[] payload = new byte[262];
@@ -356,9 +392,9 @@ public class Sam {
         sendBuf[6] = 0x00;            // Reserved
         sendBuf[7] = 0x00;            // Reserved
         System.arraycopy(snr, 0, sendBuf, 8, 4);  // Snr
-        System.arraycopy(payload, 0, sendBuf, 8+4, 64);  // Encrypted data
+        System.arraycopy(payload, 0, sendBuf, 8+4, felicaCmdParamsLen);  // Encrypted data
         System.arraycopy(mac, 0, sendBuf, 8+4 + felicaCmdParamsLen, 8);  // Encrypted MAC
-        sendLen = 8 + 4 + 64 + 8;
+        sendLen = 8 + 4 + felicaCmdParamsLen + 8;
 
         // Send packets to SAM
         String res = this.transitDataToSam(Arrays.copyOfRange(sendBuf,0,sendLen), samResLen);
@@ -369,19 +405,19 @@ public class Sam {
 
         // Extract FeliCa command packets from SAM response
 
-        felicaCommandLen[0] = hexToBytes.length - 3;
+        /*felicaCommandLen[0] = hexToBytes.length - 3;
         System.arraycopy(hexToBytes, 3, felicaCommand, 0, felicaCommandLen[0]);
-        return 1;
-        /*if (hexToBytes[3] != (byte) 0x7f) {
+        return 1;*/
+        if (hexToBytes[3] != (byte) 0x7f) {
             felicaCommandLen[0] = hexToBytes.length - 3;
-            System.arraycopy(samRes, 3, felicaCommand, 0, felicaCommandLen[0]);
+            System.arraycopy(hexToBytes, 3, felicaCommand, 0, felicaCommandLen[0]);
             // HexDump(samResLen, samRes, "SAM response");
             return 1;
         } else {
             felicaCommandLen[0] = 1;
             // TextDump("SAM decline", 0);
             return 0;
-        }*/
+        }
     }
 
     public String SendAuth1V2ResultToSAM(int[] felicaResLen,
@@ -427,40 +463,40 @@ public class Sam {
         samResLen = 0xFF;
 
         // Send packets to SAM
-        String result = transitDataToSam(sendBuf, 0xFF);
-        if (!TextUtils.isEmpty(result)) {
+        String result = transitDataToSam(Arrays.copyOfRange(sendBuf,0,sendLen), 0xFF);
+        if (TextUtils.isEmpty(result)) {
             // PrintText("Card result Error\n");
             return 0;
         }
         System.arraycopy(Utils.hexToByte(result), 0, samRes, 0, result.length() / 2);
 
-        auth2V2CommandLen[0] = samResLen - 3;
+        auth2V2CommandLen[0] = result.length()/2 - 3;
         System.arraycopy(samRes, 3, auth2V2Command, 0, auth2V2CommandLen[0]);
 
         return 1;
     }
 
-    public int sendCardResultToSAM(int felicaResLen,byte[] felicaResponse,int[] resultLen,byte[] result) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public int sendCardResultToSAM(int felicaResLen,byte[] felicaResponse,int[] resultLen,byte[] result) throws Exception {
         byte[] sendBuf = new byte[262],samRes = new byte[262];
         int sendLen,samResLen;
         sendBuf[0] = 0x01;// Dispatcher
         sendBuf[1] = 0x00;// Reserved
         sendBuf[2] = 0x00;// Reserved
         System.arraycopy(felicaResponse,0,sendBuf,3,felicaResLen);
-
-        String res = transitDataToSam(sendBuf,0xFF);
+        sendLen = 3 + felicaResLen;
+        String res = transitDataToSam(Arrays.copyOfRange(sendBuf,0,sendLen),0xFF);
         if(TextUtils.isEmpty(res)) {
             return 0;
         }
         samRes = Utils.hexToByte(res);
         samResLen = samRes.length-3;
         int offset = 3;
-        int decryptRes = decryptSamResponse(samRes,offset,samResLen,result);
+        int decryptRes = decryptSamResponse(Arrays.copyOfRange(samRes,3,samRes.length),offset,samResLen,result);
         resultLen[0] = samResLen - (1+2+1+1+3+4) - 8;
         return  decryptRes;
 
     }
-    int decryptSamResponse(byte[] samResponse,int offset, int samResLen, byte[] plainPackets) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, ShortBufferException, BadPaddingException, InvalidAlgorithmParameterException {
+    int decryptSamResponse(byte[] samResponse,int offset, int samResLen, byte[] plainPackets) throws Exception {
         byte[] receivedSnr = new byte[4];
         int snrValue, receivedSnrValue;
         int encDataLen;
@@ -476,7 +512,7 @@ public class Sam {
         byte[] cMac = new byte[16];
 
         //Extract snr
-        System.arraycopy(samResponse, 1 + 1 + 3+offset, receivedSnr, 0, 4);
+        System.arraycopy(samResponse, 1 + 1 + 3, receivedSnr, 0, 4);
 
         // Calculated encrypted packets data length
         encDataLen = samResLen - (1 + 1 + 3 + 4) - 8;
@@ -485,7 +521,7 @@ public class Sam {
         Arrays.fill(counter, (byte) 0x00);
         Arrays.fill(workBuf, (byte) 0x00);
         SecretKeySpec keySpec = new SecretKeySpec(this.kYtr, "AES");
-        Cipher cipher = Cipher.getInstance("AES/CBC/NoPadding");
+        Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE, keySpec);
         int i = 0;
         for (i = 0; i + 15 < encDataLen; i += 16) {
@@ -497,7 +533,7 @@ public class Sam {
             ctrBlock[15] = (byte) ((i / 16) + 1);
             cipher.doFinal(ctrBlock, 0, ctrBlock.length, plainPackets, i);
             for (int j = i; j < i + 16; j++) {
-                plainPackets[j] = (byte) (plainPackets[j] ^ samResponse[1 + 1 + 3 + 4 + offset + j]);
+                plainPackets[j] = (byte) (plainPackets[j] ^ samResponse[1 + 1 + 3 + 4 + j]);
             }
         }
         if(i<encDataLen){
@@ -509,16 +545,21 @@ public class Sam {
             ctrBlock[15] = (byte) ((i / 16) + 1);
             cipher.doFinal(ctrBlock, 0, ctrBlock.length, plainPackets, i);
             for (int j = i; j < encDataLen; j++) {
-                plainPackets[j] = (byte) (plainPackets[j] ^ samResponse[1 + 1 + 3 + 4 + offset + j]);
+                plainPackets[j] = (byte) (plainPackets[j] ^ samResponse[1 + 1 + 3 + 4 + j]);
             }
         }
 
         // Decrypt MAC
+        ctrBlock[0] = 0x01;
+        System.arraycopy(receivedSnr, 0, ctrBlock, 1, 4);
+        System.arraycopy(rcr, 0, ctrBlock, 1 + 4, 4);
+        System.arraycopy(rar, 0, ctrBlock, 1 + 4 + 4, 5);
         ctrBlock[14]=ctrBlock[15]=0x00;
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(ctrBlock);
         cipher = Cipher.getInstance("AES/CTR/NoPadding");
         cipher.init(Cipher.ENCRYPT_MODE,keySpec,ivParameterSpec);
-        receivedMac = cipher.doFinal(Arrays.copyOfRange(samResponse,samResLen-9,(samResLen-9)+8));
+        cipher.doFinal(samResponse,samResLen-9,8,receivedMac,0);
+        byte[] customCTREncrypt = encryptAESCTR(Arrays.copyOfRange(samResponse,samResLen-9,samResLen),kYtr,ctrBlock);
 
         // Create b0
 
@@ -534,7 +575,7 @@ public class Sam {
         Arrays.fill(bytes,(byte) 0x00);
         b1[0] = 0x00;
         b1[1] = 0x09;
-        System.arraycopy(samResponse, offset, b1, 2, 1+1+3+4);
+        System.arraycopy(samResponse, 0, b1, 2, 1+1+3+4);
         System.arraycopy(bytes, 0, b1, 1+1+3+4+2, 5);
 
         // Calc CBC-MAC
@@ -543,7 +584,7 @@ public class Sam {
         System.arraycopy(b1,0,workBuf,16,16);
         System.arraycopy(plainPackets,0,workBuf,16+16,encDataLen);
         calculateMacRaw(workBuf,16+16+encDataLen,mac);
-        calculateMacUsingCMac(workBuf,16+16+encDataLen,cMac);
+//        calculateMacUsingCMac(workBuf,16+16+encDataLen,cMac);
 
         receivedSnrValue = Utils.charArrayToIntLE(receivedSnr,4);
         snrValue = Utils.charArrayToIntLE(snr,4);
@@ -556,7 +597,7 @@ public class Sam {
         Utils.intToCharArrayLE(snrValue,snr);
 
         // Verify Mac
-        if(Arrays.equals(receivedMac,mac)){
+        if(Arrays.equals(receivedMac,Arrays.copyOfRange(mac,0,8))){
             return 1;
         }
         return 1;

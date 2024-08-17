@@ -3,6 +3,15 @@ package com.decard.exampleSrc;
 import android.util.Log;
 
 import com.decard.NDKMethod.BasicOper;
+import com.decard.exampleSrc.model.AttributeInfo;
+import com.decard.exampleSrc.model.EPurseInfo;
+import com.decard.exampleSrc.model.FelicaCardDetail;
+import com.decard.exampleSrc.model.GateAccessLog;
+import com.decard.exampleSrc.model.GeneralInfo;
+import com.decard.exampleSrc.model.HistoryRecord;
+import com.decard.exampleSrc.model.IssuerInfo;
+import com.decard.exampleSrc.model.OperatorInfo;
+import com.decard.exampleSrc.model.PersonalInfo;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -14,6 +23,8 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.ShortBufferException;
 
+import lombok.Getter;
+
 public class FelicaCard {
     private final Sam sam;
     private byte[] iDm;
@@ -21,6 +32,8 @@ public class FelicaCard {
     private byte[] idt;
     private byte[] idi;
     private byte[] systemCode;
+    @Getter
+    private FelicaCardDetail felicaCardDetail;
 
     public FelicaCard(Sam sam) {
         this.sam = sam;
@@ -40,7 +53,7 @@ public class FelicaCard {
         return result[2];
     }
 
-    public int iWaitForAndAnalyzeFeliCa() throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public int iWaitForAndAnalyzeFeliCa() throws Exception {
         byte[] readData = new byte[256];
         int[] readLen = new int[1];
 
@@ -48,7 +61,101 @@ public class FelicaCard {
         if (ret == 0) {
             return 0;
         }
+        populateFelicaCard(Arrays.copyOfRange(readData,3,readData.length),readLen[0]-3);
         return 1;
+    }
+
+    private void populateFelicaCard(byte[] data, int len){
+       byte[] bytes = Arrays.copyOfRange(data,0,len-2);
+        IssuerInfo issuerInfo = IssuerInfo.builder().binCardIssuerID(Arrays.copyOfRange(bytes,0,2))
+                .binIssuerEquipmentClass(bytes[2]).binInitializerId(bytes[3])
+                .binCardIssueDate(Arrays.copyOfRange(bytes,4,6))
+                .binCardRevision(bytes[6]).binRecycleCounter(bytes[7])
+                .binReserved(Arrays.copyOfRange(bytes,8,8+8)).build();
+        PersonalInfo personalInfo = PersonalInfo.builder().binName(Arrays.copyOfRange(bytes,16,16+48))
+                .binPhone(Arrays.copyOfRange(bytes,16+48,16+48+6))
+                .binBirthday(Arrays.copyOfRange(bytes,16+48+6,16+48+6+2))
+                .binEmployeeNumber(Arrays.copyOfRange(bytes,16+48+6+2,16+48+6+2+4))
+                .binPersonalAttrib(bytes[16+48+6+2+4])
+                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1,16+48+6+2+4+1+3))
+                .build();
+        AttributeInfo attributeInfo = AttributeInfo.builder().binCardFunctionCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3,16+48+6+2+4+1+3+2))
+                .binCardControlCode(bytes[16+48+6+2+4+1+3+2])
+                .binDiscountCode(bytes[16+48+6+2+4+1+3+2+1])
+                .binExpiryDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1,16+48+6+2+4+1+3+2+1+1+2))
+                .binTxnDataId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2,16+48+6+2+4+1+3+2+1+1+2+2))
+                .binReplacedCardId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8))
+                .binMerchandizeManagementCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8))
+                .binNegativeValue(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2))
+                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6))
+                .build();
+        EPurseInfo ePurseInfo =  EPurseInfo.builder()
+                .binRemainingSV(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4))
+                .binCashbackData(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4))
+                .binCompoundData(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5))
+                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5])
+                .binExecutionId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2))
+                .build();
+        OperatorInfo operatorInfo = OperatorInfo.builder()
+                .binOperatorCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2))
+                .binEquipmentClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2])
+                .binStationCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2))
+                .binEquipmentLocation(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2))
+                .binActivationDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2))
+                .binStatusFlag(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2])
+                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1])
+                .binDepositAmount(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2))
+                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3))
+                .build();
+        HistoryRecord historyRecord = HistoryRecord.builder()
+                .binEquipmentClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3])
+                .binServiceClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1])
+                .binContextCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1])
+                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1])
+                .binDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2))
+                .binTime(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2])
+                .binPlace1(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2))
+                .binPlace2(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2))
+                .binCardBalance(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3))
+                .binSVLogId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2))
+                .build();
+        GateAccessLog gateAccessLog = GateAccessLog.builder()
+                .binStatus(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2))
+                .binDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2))
+                .binTime(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2))
+                .binStationCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2))
+                .binEquipmentLocation(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2))
+                .binAmountBaseFare(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3))
+                .binAmountDistanceFare(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3+3))
+                .build();
+
+        GeneralInfo generalInfo = GeneralInfo.builder()
+                .binCardID(idi)
+                .binReCycleCounter(issuerInfo.getBinRecycleCounter())
+                .lngRemainingSV(Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4))
+                .lngCashBackData(Utils.charArrayToIntLE(ePurseInfo.getBinCashbackData(),4))
+                .intNegativeValue((short) Utils.charArrayToIntLE(attributeInfo.getBinNegativeValue(),2))
+                .build();
+        if((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0xC0){
+            generalInfo.setBinCardType((byte)0); // RAPIDPASS_SVC_CARD
+        }
+        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x10) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
+            generalInfo.setBinCardType((byte)10); // RAPIDPASS_OPERATOR_CARD
+        }
+        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x20) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
+            generalInfo.setBinCardType((byte)11); // RAPIDPASS_NEXT_CARD
+        }
+        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x30) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
+            generalInfo.setBinCardType((byte)12); // RAPIDPASS_PREV_CARD
+        }
+        else{
+            generalInfo.setBinCardType((byte)-1);
+        }
+
+        this.felicaCardDetail = new FelicaCardDetail(generalInfo,issuerInfo,personalInfo,
+                attributeInfo,ePurseInfo,operatorInfo,historyRecord,gateAccessLog);
+        return;
+
     }
 
     public byte[] getIDm() {
@@ -64,7 +171,7 @@ public class FelicaCard {
     }
 
     public int mutualAuthV2WithFeliCa(byte serviceCodeNum,
-                                      byte[] serviceCodeKeyVerList) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+                                      byte[] serviceCodeKeyVerList) throws Exception {
         long _ret;
 
         byte[] felicaCmdParams = new byte[256];
@@ -152,18 +259,19 @@ public class FelicaCard {
             return 0;
         }
 
+        byte[] hexToByte = Utils.hexToByte(result[1]);
         // HexDump(receiveLen, receiveBuf, "C <- Felica");
-        if (result[1].length() < 10) {
+        if (hexToByte.length < 10) {
             return 0;
         }
-
-        System.arraycopy(Utils.hexToByte(result[1]), 1, felicaResBuf, 0, Utils.hexToByte(result[1]).length - 1);
+        receiveLen = hexToByte.length;
+        System.arraycopy(hexToByte, 1, felicaResBuf, 0, receiveLen-1);
         felicaResLen[0] = receiveLen - 1;
 
         return 1;
     }
 
-    public int readDataBlock(byte blockNum, byte[] blockList, int[] readLen, byte[] readData) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public int readDataBlock(byte blockNum, byte[] blockList, int[] readLen, byte[] readData) throws Exception {
         byte[] felicaCmdParams = new byte[256], felicaCmd = new byte[262], felicaRes = new byte[262];
         int felicaCmdParamsLen = 0;
         int[] felicaCmdLen = new int[1], felicaResLen = new int[1];
@@ -171,7 +279,8 @@ public class FelicaCard {
         // Generate params sent to sam
         felicaCmdParams[0] = idt[0];
         felicaCmdParams[1] = idt[1];
-        System.arraycopy(blockList, 0, felicaCmdParams, 2 + 1, blockNum * 2);
+        felicaCmdParams[2] = blockNum;
+        System.arraycopy(blockList, 0, felicaCmdParams, 2+1, blockNum * 2);
         felicaCmdParamsLen = 2 + 1 + blockNum * 2;
         int ret = (int) sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_READ, felicaCmdParamsLen, felicaCmdParams, felicaCmdLen, felicaCmd);
         if (ret == 0) {
@@ -189,7 +298,7 @@ public class FelicaCard {
 
     }
 
-    public int readFiles(byte[] pbinReadData, int[] plngReadLen) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, ShortBufferException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
+    public int readFiles(byte[] pbinReadData, int[] plngReadLen) throws Exception {
         byte serviceNum, blockNum;
         byte[] serviceList = new byte[64], blockList = new byte[128];
         int[] readLen = new int[1];
@@ -256,6 +365,40 @@ public class FelicaCard {
         if (ret == 0) {
             return 0;
         }
+        return 1;
+    }
+
+
+    public int updateBalance() throws Exception {
+        byte serviceNum, blockNum;
+        byte[] serviceList = new byte[64], blockList = new byte[128],blockData = new byte[256];
+        int[] readLen = new int[1];
+        serviceNum = 1;
+        serviceList[4] = 0x10; //Direct Access of purse
+        serviceList[5] = 0x14; //Direct Access of purse
+        serviceList[6] = 0x01; //Service key ver
+        serviceList[7] = 0x00; //Service key ver
+
+        int ret = mutualAuthV2WithFeliCa(serviceNum, serviceList);
+        if (ret == 0) {
+            return 0;
+        }
+
+        blockNum = 1;
+        blockList[0] = (byte) 0x83;    //file 4, ePurse
+        blockList[1] = 0x00;    //0th block
+        EPurseInfo ePurseInfo = this.felicaCardDetail.getEPurseInfo();
+        ePurseInfo.setBinRemainingSV(new byte[]{0x00, 0x00, 0x00, 0x64});
+
+        System.arraycopy(blockData,0,ePurseInfo.getData(),0, 16);
+        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
+        if(ret==0){
+            return 0;
+        }
+        return 1;
+    }
+
+    private int writeBlockData(int blockNum,int blockLen,byte[] blockList,byte[] blockData){
         return 1;
     }
 

@@ -874,7 +874,7 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
-    int TSAM(int samSlot) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, ShortBufferException {
+    int TSAM(int samSlot) throws Exception {
         String apdu = "0084000008";
         String rwSamNumber = "";
         String[] resultArr;
@@ -948,6 +948,14 @@ public class MainActivity extends AppCompatActivity {
         int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
+            appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinName()));
+            appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinPhone()));
+            appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinBirthday()));
+            appendLog("reserved: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinReserved()));
+            appendLog("getLngRemainingSV: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngRemainingSV());
+            appendLog("getIntNegativeValue: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getIntNegativeValue());
+            appendLog("getLngCashBackData: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngCashBackData());
+            appendLog("rapidpass card type: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getBinCardType());
         } else{
             appendLog("Can not analyze Felica card");
             return -11;
@@ -1108,7 +1116,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void onSam1(View v) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, ShortBufferException {
+    public void onSam1(View v) throws Exception {
         clearLog();
         appendLog("Test SAM1 card.........");
         int st = TSAM(3);
