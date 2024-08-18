@@ -960,6 +960,14 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Can not analyze Felica card");
             return -11;
         }
+        /*appendLog("Trying to update balance");
+        i = felicaCard.updateBalance();
+        if(i==0){
+            appendLog("update balance failed");
+            return -12;
+        }
+        appendLog("update balance successful (probably)");*/
+
         /*resultArr = BasicOper.dc_setcpu(samSlot).split("\\|", -1);
         if (resultArr[0].equals("0000")) {
             appendLog("dc_setcpu success");
@@ -1119,12 +1127,22 @@ public class MainActivity extends AppCompatActivity {
     public void onSam1(View v) throws Exception {
         clearLog();
         appendLog("Test SAM1 card.........");
-        int st = TSAM(3);
-        if (st != 0) {
-            appendLog("test SAM1 card error");
-            return;
-        }
-        appendLog("test SAM1 card success");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int st = 0;
+                try {
+                    st = TSAM(3);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                if (st != 0) {
+                    appendLog("test SAM1 card error");
+                    return;
+                }
+                appendLog("test SAM1 card success");
+            }
+        }).start();
     }
 
     public void onM1(View v) {

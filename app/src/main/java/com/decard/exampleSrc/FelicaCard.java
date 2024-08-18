@@ -374,10 +374,10 @@ public class FelicaCard {
         byte[] serviceList = new byte[64], blockList = new byte[128],blockData = new byte[256];
         int[] readLen = new int[1];
         serviceNum = 1;
-        serviceList[4] = 0x10; //Direct Access of purse
-        serviceList[5] = 0x14; //Direct Access of purse
-        serviceList[6] = 0x01; //Service key ver
-        serviceList[7] = 0x00; //Service key ver
+        serviceList[0] = 0x10; //Direct Access of purse
+        serviceList[1] = 0x14; //Direct Access of purse
+        serviceList[2] = 0x01; //Service key ver
+        serviceList[3] = 0x00; //Service key ver
 
         int ret = mutualAuthV2WithFeliCa(serviceNum, serviceList);
         if (ret == 0) {
@@ -385,12 +385,12 @@ public class FelicaCard {
         }
 
         blockNum = 1;
-        blockList[0] = (byte) 0x83;    //file 4, ePurse
+        blockList[0] = (byte) 0x80;    //file 4, ePurse
         blockList[1] = 0x00;    //0th block
         EPurseInfo ePurseInfo = this.felicaCardDetail.getEPurseInfo();
-        ePurseInfo.setBinRemainingSV(new byte[]{0x00, 0x00, 0x00, 0x64});
+        ePurseInfo.setBinRemainingSV(new byte[]{0x64,0x00, 0x00, 0x00});
 
-        System.arraycopy(blockData,0,ePurseInfo.getData(),0, 16);
+        System.arraycopy(ePurseInfo.getData(),0,blockData,0, 16);
         ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
         if(ret==0){
             return 0;
@@ -398,7 +398,39 @@ public class FelicaCard {
         return 1;
     }
 
-    private int writeBlockData(int blockNum,int blockLen,byte[] blockList,byte[] blockData){
+    private int writeBlockData(int blockNum,int blockLen,byte[] blockList,byte[] blockData) throws Exception {
+        long _ret;
+
+        byte[] felicaCmdParams = new byte[256];
+        int felicaCmdParamsLen = 0;
+
+        byte[] samResBuf = new byte[262];
+        byte[] felicaCmd = new byte[262];
+        byte[] felicaRes = new byte[262];
+        int[] samResLen = new int[1];
+        int[] felicaResLen = new int[1];
+        int[] felicaCmdLen = new int[1];
+        felicaCmdParams[0] =						this.idt[0];						// this.idt
+        felicaCmdParams[1] =						this.idt[1];						// IDt
+        felicaCmdParams[2] =						(byte)blockNum;					// Number of Blocks
+        System.arraycopy(blockList,0,			felicaCmdParams,3, blockLen);		// block list
+        System.arraycopy(blockData,0,			felicaCmdParams,3+blockLen, blockNum*16);		// block list
+        felicaCmdParamsLen = 3 + blockLen + blockNum*16;
+
+        _ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_WRITE,felicaCmdParamsLen,felicaCmdParams,felicaCmdLen,felicaCmd);
+        if(_ret==0){
+            return 0;
+        }
+
+        _ret = transmitDataToFeliCaCard(felicaCmdLen[0]-2,felicaCmd,felicaResLen,felicaRes);
+        if(_ret==0){
+            return 0;
+        }
+        _ret = sam.sendCardResultToSAM(felicaResLen[0],felicaRes,samResLen,samResBuf);
+        if(_ret==0){
+            return 0;
+        }
+
         return 1;
     }
 
