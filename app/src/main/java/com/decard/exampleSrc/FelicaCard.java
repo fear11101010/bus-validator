@@ -374,20 +374,36 @@ public class FelicaCard {
         byte serviceNum, blockNum;
         byte[] serviceList = new byte[64], blockList = new byte[128],blockData = new byte[256];
         int[] readLen = new int[1];
-        serviceNum = 1;
-        serviceList[0] = 0x10; //Direct Access of purse
-        serviceList[1] = 0x14; //Direct Access of purse
+        serviceNum = 3;
+        serviceList[0] = 0x08; //Card Attribute Information
+        serviceList[1] = 0x13; //Card Attribute Information
         serviceList[2] = 0x01; //Service key ver
         serviceList[3] = 0x00; //Service key ver
+        serviceList[4] = 0x10; //Direct Access of purse
+        serviceList[5] = 0x14; //Direct Access of purse
+        serviceList[6] = 0x01; //Service key ver
+        serviceList[7] = 0x00; //Service key ver
+        serviceList[8] = 0x0C; //Stored Value Log Information
+        serviceList[9] = 0x22; //Stored Value Log Information
+        serviceList[10] = 0x01; //Service key ver
+        serviceList[11] = 0x00; //Service key ver
 
         int ret = mutualAuthV2WithFeliCa(serviceNum, serviceList);
         if (ret == 0) {
             return 0;
         }
 
-        blockNum = 1;
-        blockList[0] = (byte) 0x80;    //file 4, ePurse
+        blockNum = 3;
+        blockList[0] = (byte) 0x80;    // file 1, attribute
         blockList[1] = 0x00;    //0th block
+
+        blockList[4] = (byte) 0x81;    //file 2, ePurse
+        blockList[5] = 0x00;    //0th block
+
+        blockList[6] = (byte) 0x82;    //file 3, stored value log
+        blockList[7] = 0x00;    //0th block
+
+
         EPurseInfo ePurseInfo = this.felicaCardDetail.getEPurseInfo();
         ePurseInfo.setBinRemainingSV(new byte[]{0x64,0x00, 0x00, 0x00});
 
