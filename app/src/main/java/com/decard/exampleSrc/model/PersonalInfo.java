@@ -18,11 +18,11 @@ public class PersonalInfo {
     /**
      * length 6 byte
      */
-    byte[] binPhone;	//3
+    byte[] binPhone;
     /**
      * length 2 byte
      */
-    byte[] binBirthday;	//4
+    byte[] binBirthday;
     /**
      * length 4 byte
      */

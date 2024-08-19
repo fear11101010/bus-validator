@@ -38,7 +38,12 @@ public class AttributeInfo {
      */
     byte[] binNegativeValue;
     /**
-     * length 6 byte
+     * length 1 byte
+     */
+    byte rechargeType;
+
+    /**
+     * length 5 byte
      */
     byte[] binReserved;
 }

@@ -948,10 +948,12 @@ public class MainActivity extends AppCompatActivity {
         int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
+            appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
             appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinName()));
             appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinPhone()));
             appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinBirthday()));
             appendLog("reserved: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinReserved()));
+            appendLog("getLngRemainingSV in hex: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getEPurseInfo().getBinRemainingSV()));
             appendLog("getLngRemainingSV: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngRemainingSV());
             appendLog("getIntNegativeValue: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getIntNegativeValue());
             appendLog("getLngCashBackData: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngCashBackData());

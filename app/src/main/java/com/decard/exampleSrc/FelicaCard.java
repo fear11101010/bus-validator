@@ -87,7 +87,8 @@ public class FelicaCard {
                 .binReplacedCardId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8))
                 .binMerchandizeManagementCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8))
                 .binNegativeValue(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2))
-                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6))
+                .rechargeType(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2])
+                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+1+5))
                 .build();
         EPurseInfo ePurseInfo =  EPurseInfo.builder()
                 .binRemainingSV(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4))

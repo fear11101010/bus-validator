@@ -13,15 +13,15 @@ public class IssuerInfo {
     /**
      * length 2 byte
      */
-    byte[] binCardIssuerID;  // 2
+    byte[] binCardIssuerID;
     /**
      * length 1 byte
      */
-    byte binIssuerEquipmentClass;	//3
+    byte binIssuerEquipmentClass;
     /**
      * length 1 byte
      */
-    byte binInitializerId;	//4
+    byte binInitializerId;
     /**
      * length 2 byte
      */
