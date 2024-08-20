@@ -62,5 +62,6 @@ public class AttributeInfo {
         byteBuffer.put(getBinNegativeValue());
         byteBuffer.put(getRechargeType());
         byteBuffer.put(getBinReserved());
+        return byteBuffer.array();
     }
 }
