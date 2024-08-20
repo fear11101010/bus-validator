@@ -1,5 +1,7 @@
 package com.decard.exampleSrc.model;
 
+import java.nio.ByteBuffer;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -46,4 +48,19 @@ public class AttributeInfo {
      * length 5 byte
      */
     byte[] binReserved;
+
+
+    public byte[] getData(){
+        ByteBuffer byteBuffer = ByteBuffer.allocate(32);
+        byteBuffer.put(getBinCardFunctionCode());
+        byteBuffer.put(getBinCardControlCode());
+        byteBuffer.put(getBinDiscountCode());
+        byteBuffer.put(getBinExpiryDate());
+        byteBuffer.put(getBinTxnDataId());
+        byteBuffer.put(getBinReplacedCardId());
+        byteBuffer.put(getBinMerchandizeManagementCode());
+        byteBuffer.put(getBinNegativeValue());
+        byteBuffer.put(getRechargeType());
+        byteBuffer.put(getBinReserved());
+    }
 }

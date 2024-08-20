@@ -4,15 +4,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class Utils {
     public static final byte[] AUTH_KEY = {0x6C,(byte)0xF9,(byte)0xB1,(byte)0xC8,0x44,(byte)0xC2,0x6D,(byte)0x9D,(byte)0xA3,0x0E,(byte)0xF0,0x62,0x13,(byte)0xC9,0x75,(byte)0xD1};
@@ -65,5 +59,14 @@ public class Utils {
         out[2] = (byte)in;
         in = in>> 8;
         out[3] = (byte)in;
+    }
+    public static byte[] intToCharArrayLE(int in)
+    {
+        byte[] out = new byte[4];
+        ByteBuffer byteBuffer = ByteBuffer.allocate(4);
+        byteBuffer.putInt(in);
+        byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        byteBuffer.get(out);
+        return out;
     }
 }
