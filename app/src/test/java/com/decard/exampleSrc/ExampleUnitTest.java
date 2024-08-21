@@ -4,6 +4,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+import android.util.Log;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 /**
  * Example local unit test, which will execute on the development machine (host).
  *
@@ -12,6 +17,18 @@ import static org.junit.Assert.*;
 public class ExampleUnitTest {
     @Test
     public void addition_isCorrect() {
-        assertEquals(4, 2 + 2);
+        SimpleDateFormat sf = new SimpleDateFormat("HH");
+        String substring = sf.format(new Date()).substring(0, 2);
+        String hour = String.format("%5s", Integer.toBinaryString(Integer.parseInt(substring))).replace(" ","0");
+
+        int parseInt = Integer.parseInt(hour + "000", 2);
+        String hexString = String.format("%02X",parseInt);
+        byte[] bytes = Utils.hexToByte(hexString);
+        Log.d("hexString", hexString);
+    }
+
+    @Test
+    public void getDate(){
+        Utils.getYearMonthDateHourMinute();
     }
 }

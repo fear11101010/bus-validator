@@ -7,6 +7,10 @@ import androidx.annotation.NonNull;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimeZone;
 
 public class Utils {
     public static final byte[] AUTH_KEY = {0x6C,(byte)0xF9,(byte)0xB1,(byte)0xC8,0x44,(byte)0xC2,0x6D,(byte)0x9D,(byte)0xA3,0x0E,(byte)0xF0,0x62,0x13,(byte)0xC9,0x75,(byte)0xD1};
@@ -68,5 +72,19 @@ public class Utils {
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
         byteBuffer.get(out);
         return out;
+    }
+
+    public static Map<String,Integer> getYearMonthDateHourMinute(){
+        Calendar calendar = Calendar.getInstance();
+        TimeZone timeZone = TimeZone.getTimeZone("Asia/Dhaka");
+        calendar.setTimeZone(timeZone);
+
+        Map<String,Integer> map = new HashMap<>();
+        map.put("year",calendar.get(Calendar.YEAR)%100);
+        map.put("month",calendar.get(Calendar.MONTH)+1);
+        map.put("day",calendar.get(Calendar.DATE));
+        map.put("hour",calendar.get(Calendar.HOUR_OF_DAY));
+        map.put("minute",calendar.get(Calendar.MINUTE));
+        return map;
     }
 }
