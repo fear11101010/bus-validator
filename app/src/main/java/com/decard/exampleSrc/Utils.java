@@ -62,11 +62,25 @@ public class Utils {
     }
     public static byte[] intToCharArrayLE(int in)
     {
+        Log.d("intToCharArrayLE", in+"");
+        byte[] out = new byte[4];
+        Arrays.fill(out,(byte)0x00);
+        out[0] = (byte)in;
+        in = in>> 8;
+        out[1] = (byte)in;
+        in = in>> 8;
+        out[2] = (byte)in;
+        in = in>> 8;
+        out[3] = (byte)in;
+        return out;
+    }
+    /*public static byte[] intToCharArrayLE(int in)
+    {
         byte[] out = new byte[4];
         ByteBuffer byteBuffer = ByteBuffer.allocate(4);
         byteBuffer.putInt(in);
         byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-        byteBuffer.get(out);
+        byteBuffer.get(out,0,4);
         return out;
-    }
+    }*/
 }

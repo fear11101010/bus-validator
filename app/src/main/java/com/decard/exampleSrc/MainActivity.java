@@ -401,7 +401,7 @@ public class MainActivity extends AppCompatActivity {
         final int SRV_SZT = 0x0118;
         final int SYS_OCTOPUS = 0x8008;
         final int SRV_OCTOPUS = 0x0117;
-        final int SRV_IDM = 0x0008;
+        final int SRV_IDM = 0x220F;
         String[] resultArr;
 
         // SystemClock.sleep(500);
@@ -460,6 +460,7 @@ public class MainActivity extends AppCompatActivity {
         int p = 0;
         for (byte i = 0; p < N; ++i) {
             final FeliCa.ReadResponse r = tag.readWithoutEncryption(service, i);
+//            Log.d("FeliCa.ReadResponse", r.getBlockData());
             if (!r.isOkey())
                 break;
 
@@ -949,6 +950,7 @@ public class MainActivity extends AppCompatActivity {
         if(i!=0){
             appendLog("Felica card analyze successfully");
             appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
+            appendLog("txnid :"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getAttributeInfo().getBinTxnDataId()));
             appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinName()));
             appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinPhone()));
             appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinBirthday()));
@@ -962,13 +964,13 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Can not analyze Felica card");
             return -11;
         }
-        /*appendLog("Trying to update balance");
+        appendLog("Trying to update balance");
         i = felicaCard.updateBalance();
         if(i==0){
             appendLog("update balance failed");
             return -12;
         }
-        appendLog("update balance successful (probably)");*/
+        appendLog("update balance successful (probably)");
 
         /*resultArr = BasicOper.dc_setcpu(samSlot).split("\\|", -1);
         if (resultArr[0].equals("0000")) {

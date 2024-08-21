@@ -21,7 +21,7 @@ public class StoredLogInformation {
 
     private byte[] storedValueLogId;           // BIN 2
 
-    public byte[] toByteArray() {
+    public byte[] getData() {
         ByteBuffer buffer = ByteBuffer.allocate(16); // Total bytes = 16 (1+1+1+1+2+1+2+2+3+2)
 
         buffer.put(equipmentClassificationCode);   // BIN 1

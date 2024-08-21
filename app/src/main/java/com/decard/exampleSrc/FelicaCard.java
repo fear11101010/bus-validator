@@ -398,9 +398,12 @@ public class FelicaCard {
             return 0;
         }
 
-        blockNum = 3;
+        blockNum = 4;
         blockList[0] = (byte) 0x80;    // file 1, attribute
         blockList[1] = 0x00;    //0th block
+
+        blockList[2] = (byte) 0x80;    // file 1, attribute
+        blockList[3] = 0x01;    //1th block
 
         blockList[4] = (byte) 0x81;    //file 2, ePurse
         blockList[5] = 0x00;    //0th block
@@ -409,8 +412,27 @@ public class FelicaCard {
         blockList[7] = 0x00;    //0th block
 
 
-        EPurseInfo ePurseInfo = this.felicaCardDetail.getEPurseInfo();
-        int balance = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4)+Utils.charArrayToIntLE(new byte[]{0x00, 0x00, 0x00,0x64},4)
+//        EPurseInfo ePurseInfo = this.felicaCardDetail.getEPurseInfo();
+        writeEPurseInfoForRecharge(this.felicaCardDetail.getEPurseInfo());
+        writeAttributeInformationBlock(this.felicaCardDetail.getAttributeInfo());
+        StoredLogInformation storedLogInformation = new StoredLogInformation();
+        writeStoredLogInformationBlockForRecharge(storedLogInformation);
+
+        System.arraycopy(this.getFelicaCardDetail().getAttributeInfo().getData(),0,blockData,0,2*16);
+        System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(),0,blockData,32,16);
+        System.arraycopy(storedLogInformation.getData(),0,blockData,32+16,16);
+
+        Log.d("blockdata", Arrays.toString(blockData));
+
+        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
+        if(ret==0){
+            return 0;
+        }
+        return 1;
+    }
+
+    public  void writeEPurseInfoForRecharge(EPurseInfo ePurseInfo){
+        int balance = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4)+Utils.charArrayToIntLE(new byte[]{0x64,0x00, 0x00, 0x00},4)
                 -Utils.charArrayToIntLE(this.felicaCardDetail.getAttributeInfo().getBinNegativeValue(), 2);
 //        byte[] newBalance = new byte[4];
         Log.d("new balance", balance+"");
@@ -441,17 +463,13 @@ public class FelicaCard {
 
         // Set payment method
         ePurseInfo.setBinPaymentMethod((byte)0x01);
+        ePurseInfo.setBinCompoundData(compoundData);
 
         // Increment execution id by 1
+        Log.d("executionId", Arrays.toString(ePurseInfo.getBinExecutionId()));
         int executionId = Integer.parseInt(Utils.byteToHex(ePurseInfo.getBinExecutionId()),16)+1;
-        ePurseInfo.setBinExecutionId(Utils.hexToByte(Integer.toHexString(executionId)));
-
-        System.arraycopy(ePurseInfo.getData(),0,blockData,0, 16);
-        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
-        if(ret==0){
-            return 0;
-        }
-        return 1;
+        Log.d("executionId", String.format("%04x",executionId));
+        ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04x",executionId)));
     }
 
     public  void writeStoredLogInformationBlockForRecharge(StoredLogInformation storedLogInformation){
@@ -482,7 +500,7 @@ public class FelicaCard {
     public void writeAttributeInformationBlock(AttributeInfo attributeInfo){
         String hex = Utils.byteToHex(attributeInfo.getBinTxnDataId());
         int i = Integer.parseInt(hex,16);
-        String newTxnId = Integer.toHexString(i+1);
+        String newTxnId = String.format("%04x",i+1);
         attributeInfo.setBinTxnDataId(Utils.hexToByte(newTxnId));
     }
 
