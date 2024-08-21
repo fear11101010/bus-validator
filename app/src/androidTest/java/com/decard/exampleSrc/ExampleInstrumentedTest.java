@@ -23,4 +23,9 @@ public class ExampleInstrumentedTest {
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("com.decard.exampleSrc", appContext.getPackageName());
     }
+
+    @Test
+    public void getDate(){
+        Utils.getYearMonthDateHourMinute();
+    }
 }

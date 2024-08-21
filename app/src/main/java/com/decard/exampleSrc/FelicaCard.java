@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -422,12 +423,12 @@ public class FelicaCard {
         System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(),0,blockData,32,16);
         System.arraycopy(storedLogInformation.getData(),0,blockData,32+16,16);
 
-        Log.d("blockdata", Arrays.toString(blockData));
+       /* Log.d("blockdata", Arrays.toString(blockData));
 
         ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
         if(ret==0){
             return 0;
-        }
+        }*/
         return 1;
     }
 
@@ -440,20 +441,21 @@ public class FelicaCard {
         Log.d("new balance in byte:", Arrays.toString(ePurseInfo.getBinRemainingSV()));
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddhhmm", Locale.ENGLISH);
         String date = dateFormat.format(new Date());
+        Map<String,String> map = Utils.getYearMonthDateHourMinute();
 
         // Generate year, month and data
         String year = String.format("%7s",Integer.toBinaryString(Integer.parseInt(date.substring(0,2)))).replace(' ','0');
         String month = String.format("%4s",Integer.toBinaryString(Integer.parseInt(date.substring(2,4)))).replace(' ','0');
         String day = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(4,6)))).replace(' ','0');
 
-        String dateInHex = Integer.toHexString(Integer.parseInt(year+month+day,2)).toUpperCase();
+        String dateInHex = String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2));
         Log.d("dateInHex", dateInHex);
 
         // Generate hour , minute and region code
         String hour = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(6,8)))).replace(' ','0');
         String minute = String.format("%6s",Integer.toBinaryString(Integer.parseInt(date.substring(8,10)))).replace(' ','0');
         String regionCode = String.format("%5s",Integer.toBinaryString(10)).replace(' ','0');
-        String regionAndHourAndMinuteInHex = Integer.toHexString(Integer.parseInt(hour+minute+regionCode,2)).toUpperCase();
+        String regionAndHourAndMinuteInHex = String.format("%04X",Integer.parseInt(map.get("hour")+map.get("minute")+regionCode,2));
 
         // Generate compound data 2+2+1
         byte[] compoundData = new byte[5];
@@ -473,24 +475,30 @@ public class FelicaCard {
     }
 
     public  void writeStoredLogInformationBlockForRecharge(StoredLogInformation storedLogInformation){
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddhh", Locale.ENGLISH);
-        String date = dateFormat.format(new Date());
+//        SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddhh", Locale.ENGLISH);
+//        String date = dateFormat.format(new Date());
 
         // Generate year, month and data
-        String year = String.format("%7s",Integer.toBinaryString(Integer.parseInt(date.substring(0,2)))).replace(' ','0');
-        String month = String.format("%4s",Integer.toBinaryString(Integer.parseInt(date.substring(2,4)))).replace(' ','0');
-        String day = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(4,6)))).replace(' ','0');
-        String hour = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(6,8)))).replace(' ','0');
+//        String year = String.format("%7s",Integer.toBinaryString(Integer.parseInt(date.substring(0,2)))).replace(' ','0');
+//        String month = String.format("%4s",Integer.toBinaryString(Integer.parseInt(date.substring(2,4)))).replace(' ','0');
+//        String day = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(4,6)))).replace(' ','0');
+//        String hour = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(6,8)))).replace(' ','0');
+//
+//        String dateInHex = Integer.toHexString(Integer.parseInt(year+month+day,2)).toUpperCase();
+//        Log.d("dateInHex", dateInHex);
 
-        String dateInHex = Integer.toHexString(Integer.parseInt(year+month+day,2)).toUpperCase();
-        Log.d("dateInHex", dateInHex);
+        Map<String,String> map = Utils.getYearMonthDateHourMinute();
 
         storedLogInformation.setEquipmentClassificationCode((byte) 0x25);
         storedLogInformation.setServiceClassificationCode((byte) 0x60);
         storedLogInformation.setContextCode((byte) 0x02);
         storedLogInformation.setPaymentMethodCode((byte) 0x01);
-        storedLogInformation.setDate(Utils.hexToByte(dateInHex));
-        storedLogInformation.setTime(Utils.hexToByte(Integer.toHexString(Integer.parseInt(hour+"000",2)).toUpperCase())[0]);
+        Log.d("storedlogdate :", String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)));
+        Log.d("storedlogdate in decimal:", Integer.parseInt(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)),16)+"");
+        int i = Integer.parseInt(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)),16);
+
+        storedLogInformation.setDate(Utils.hexToByte(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2))));
+        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X",Integer.parseInt(map.get("hour")+"000",2)).toUpperCase())[0]);
         storedLogInformation.setPlace1(Utils.hexToByte("0105"));
         storedLogInformation.setPlace2(new byte[]{0x00,0x00});
         storedLogInformation.setCardBalance(Arrays.copyOfRange(this.felicaCardDetail.getEPurseInfo().getBinRemainingSV(),0,3));
@@ -500,7 +508,7 @@ public class FelicaCard {
     public void writeAttributeInformationBlock(AttributeInfo attributeInfo){
         String hex = Utils.byteToHex(attributeInfo.getBinTxnDataId());
         int i = Integer.parseInt(hex,16);
-        String newTxnId = String.format("%04x",i+1);
+        String newTxnId = String.format("%04X",i+1);
         attributeInfo.setBinTxnDataId(Utils.hexToByte(newTxnId));
     }
 
@@ -538,6 +546,26 @@ public class FelicaCard {
         }
 
         return 1;
+    }
+
+    public String readOpenBlock(){
+        String[] cmd = new String[]{
+            "10","06",Utils.byteToHex(this.iDm),"01","0F22","01"
+        };
+        String[] blockList = new String[]{"8000","8001","8002","8003","8004","8005","8006","8007","8008","8009","8010","8011",
+                "8012","8013","8014","8015","8017","8018","8019"};
+
+
+        StringBuilder builder = new StringBuilder();
+        for(int i=0;i<20;i++) {
+            String apdu = String.join("",cmd)+blockList[i];
+            //1006012E30D4B6154266010F22018000
+            String[] result = BasicOper.dc_FeliCaApdu(apdu).split("\\|", -1);
+            if (result[0].equals("0000")) {
+                builder.append(result[1]);
+            }
+        }
+        return null;
     }
 
 }

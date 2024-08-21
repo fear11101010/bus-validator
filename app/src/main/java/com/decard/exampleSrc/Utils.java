@@ -88,17 +88,21 @@ public class Utils {
         return out;
     }*/
 
-    public static Map<String,Integer> getYearMonthDateHourMinute(){
+    public static Map<String,String> getYearMonthDateHourMinute(){
         Calendar calendar = Calendar.getInstance();
         TimeZone timeZone = TimeZone.getTimeZone("Asia/Dhaka");
         calendar.setTimeZone(timeZone);
+        Log.d("calenderYear", calendar.get(Calendar.YEAR)+"");
+        Log.d("calenderMonth", (calendar.get(Calendar.MONTH)+1)+"");
+        Log.d("calenderDay", calendar.get(Calendar.DATE)+"");
+        Log.d("calenderMinute", calendar.get(Calendar.MINUTE)+"");
+        Map<String,String> map = new HashMap<>();
+        map.put("year",String.format("%7s",Integer.toBinaryString(calendar.get(Calendar.YEAR)%100)).replace(" ","0"));
+        map.put("month",String.format("%4s",Integer.toBinaryString(calendar.get(Calendar.MONTH)+1)).replace(" ","0"));
+        map.put("day",String.format("%5s",Integer.toBinaryString(calendar.get(Calendar.DATE))).replace(" ","0"));
+        map.put("hour",String.format("%5s",Integer.toBinaryString(calendar.get(Calendar.HOUR_OF_DAY))).replace(" ","0"));
+        map.put("minute",String.format("%6s",Integer.toBinaryString(calendar.get(Calendar.MINUTE))).replace(" ","0"));
 
-        Map<String,Integer> map = new HashMap<>();
-        map.put("year",calendar.get(Calendar.YEAR)%100);
-        map.put("month",calendar.get(Calendar.MONTH)+1);
-        map.put("day",calendar.get(Calendar.DATE));
-        map.put("hour",calendar.get(Calendar.HOUR_OF_DAY));
-        map.put("minute",calendar.get(Calendar.MINUTE));
         return map;
     }
 }
