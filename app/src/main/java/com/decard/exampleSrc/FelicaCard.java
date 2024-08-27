@@ -58,7 +58,34 @@ public class FelicaCard {
         }
         return result[2];
     }
+    public long pollingCard() throws Exception {
+        long ret;
 
+        byte[] felicaCmdParams = new byte[256];
+        int felicaCmdParamsLen = 0;
+
+        byte[] felicaCmd = new byte[255];
+        byte[] felicaRes = new byte[262];
+        byte[] workBuf = new byte[262];
+        int[] felicaCmdLen = new int[1], felicaResLen = new int[1], workBufLen = new int[1];
+
+        felicaCmdParams[0] = this.systemCode[0];  // System code
+        felicaCmdParams[1] = this.systemCode[1];  // System code
+        felicaCmdParams[2] = 0x00;            // Timeslot
+        felicaCmdParamsLen = 3;
+
+        ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_POLLING,felicaCmdParamsLen,felicaCmdParams,
+                felicaCmdLen,felicaCmd);
+        if(ret==0) return 0;
+
+        ret = transmitDataToFeliCaCard(felicaCmdLen[0],felicaCmd,felicaResLen,felicaRes);
+        if(ret==0) return 0;
+
+        return 1;
+
+
+
+    }
     public int iWaitForAndAnalyzeFeliCa() throws Exception {
         byte[] readData = new byte[256];
         int[] readLen = new int[1];
@@ -265,6 +292,8 @@ public class FelicaCard {
 //            tap_error = 1;
             return 0;
         }
+
+        Log.d("felicaCommandFinal", "felicaCommandFinal: "+result[1]);
 
         byte[] hexToByte = Utils.hexToByte(result[1]);
         // HexDump(receiveLen, receiveBuf, "C <- Felica");
