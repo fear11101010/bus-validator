@@ -285,6 +285,7 @@ public class FelicaCard {
         receiveLen = 262;
 
         // HexDump(sendLen, sendBuf, "C -> Felica");
+        Log.d("felicaCmd", Utils.byteToHex(Arrays.copyOfRange(sendBuf, 0, sendLen)));
         String[] result = BasicOper.dc_FeliCaApdu(Utils.byteToHex(Arrays.copyOfRange(sendBuf, 0, sendLen))).split("\\|", -1);
 //        ret = ctosFelicaReadWrite(sendBuf, sendLen, receiveBuf, receiveLen, 3000);
 

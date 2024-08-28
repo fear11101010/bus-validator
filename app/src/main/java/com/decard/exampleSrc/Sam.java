@@ -412,7 +412,7 @@ public class Sam {
         if (hexToBytes[3] != (byte) 0x7f) {
             felicaCommandLen[0] = hexToBytes.length - 3;
             System.arraycopy(hexToBytes, 3, felicaCommand, 0, felicaCommandLen[0]);
-            Log.d("felicaPolingCmd-2", "felicaPolingCmd: "+res);
+            Log.d("felicaPolingCmd-2", "felicaPolingCmd: "+Utils.byteToHex(felicaCommand));
             // HexDump(samResLen, samRes, "SAM response");
             return 1;
         } else {

@@ -946,6 +946,7 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Felica card detect failed");
             return -10;
         }
+        felicaCard.pollingCard();
         /*int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
