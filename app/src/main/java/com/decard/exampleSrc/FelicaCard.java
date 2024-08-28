@@ -423,12 +423,12 @@ public class FelicaCard {
         System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(),0,blockData,32,16);
         System.arraycopy(storedLogInformation.getData(),0,blockData,32+16,16);
 
-       /* Log.d("blockdata", Arrays.toString(blockData));
+        Log.d("blockdata", Arrays.toString(blockData));
 
         ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
         if(ret==0){
             return 0;
-        }*/
+        }
         return 1;
     }
 
