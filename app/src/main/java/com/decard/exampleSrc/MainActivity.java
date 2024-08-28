@@ -946,7 +946,7 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Felica card detect failed");
             return -10;
         }
-        int i = felicaCard.iWaitForAndAnalyzeFeliCa();
+        /*int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
             appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
@@ -963,16 +963,16 @@ public class MainActivity extends AppCompatActivity {
         } else{
             appendLog("Can not analyze Felica card");
             return -11;
-        }
+        }*/
         appendLog("Trying to update balance");
-        String r = felicaCard.readOpenBlock();
-        if(TextUtils.isEmpty(r)){
-            appendLog("Can not read open block");
-            return -11;
-        } else {
-            Log.d("open block data", r);
-            appendLog("open block data :"+r);
-        }
+//        String r = felicaCard.readOpenBlock();
+//        if(TextUtils.isEmpty(r)){
+//            appendLog("Can not read open block");
+//            return -11;
+//        } else {
+//            Log.d("open block data", r);
+//            appendLog("open block data :"+r);
+//        }
 
 
         /*i = felicaCard.updateBalance();
