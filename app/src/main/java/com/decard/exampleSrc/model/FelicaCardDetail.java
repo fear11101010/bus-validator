@@ -10,6 +10,6 @@ public class FelicaCardDetail {
     private final AttributeInfo attributeInfo;
     private final EPurseInfo ePurseInfo;
     private final OperatorInfo operatorInfo;
-    private final HistoryRecord lastTransaction;
+    private final StoredLogInformation storedLogInformation;
     private final GateAccessLog gateAccessLog;
 }

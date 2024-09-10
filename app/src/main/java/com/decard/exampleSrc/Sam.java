@@ -396,11 +396,13 @@ public class Sam {
         System.arraycopy(mac, 0, sendBuf, 8+4 + felicaCmdParamsLen, 8);  // Encrypted MAC
         sendLen = 8 + 4 + felicaCmdParamsLen + 8;
 
+        Log.d("MutualAuthv2", "askFeliCaCmdToSAMSC: "+Utils.byteToHex(Arrays.copyOfRange(sendBuf,0,sendLen)));
         // Send packets to SAM
         String res = this.transitDataToSam(Arrays.copyOfRange(sendBuf,0,sendLen), samResLen);
         if (TextUtils.isEmpty(res)) {
             return 0;
         }
+        Log.d("MutualAuth2V2FelicaCmd", "askFeliCaCmdToSAMSC: "+res);
         byte[] hexToBytes = Utils.hexToByte(res);
         Log.d("felicaPolingCmd-1", "felicaPolingCmd: "+res);
 

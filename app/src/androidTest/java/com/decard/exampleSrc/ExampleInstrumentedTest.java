@@ -22,6 +22,8 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
         assertEquals("com.decard.exampleSrc", appContext.getPackageName());
+        Utils.createFile(appContext);
+        Utils.initializeRoute(appContext);
     }
 
     @Test

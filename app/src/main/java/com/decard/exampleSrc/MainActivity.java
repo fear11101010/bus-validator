@@ -1,17 +1,15 @@
 package com.decard.exampleSrc;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.Manifest;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.res.Resources;
-import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
-import android.hardware.usb.UsbManager;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -27,12 +25,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.decard.NDKMethod.BasicOper;
-import com.decard.driver.utils.HexDump;
 import com.decard.entitys.IDCard;
-import com.decard.exampleSrc.desfire.DESFireEV1;
 import com.decard.exampleSrc.desfire.DESFireEV3;
 import com.decard.exampleSrc.desfire.ev1.model.VersionInfo;
-import com.decard.exampleSrc.desfire.ev1.model.command.DefaultIsoDepAdapter;
 import com.decard.exampleSrc.desfire.ev1.model.command.Utils;
 import com.decard.exampleSrc.desfire.ev1.model.key.DesfireKeyType;
 import com.decard.exampleSrc.felica.FeliCa;
@@ -54,18 +49,11 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends AppCompatActivity {
     private final String TAG = MainActivity.class.getSimpleName();
@@ -95,6 +83,10 @@ public class MainActivity extends AppCompatActivity {
     public final int PICC_FSD_128 = 0x07;
     public final int PICC_FSD_256 = 0x08;
     public final String desfireATQA = "4403";
+    private int totalPermissionGranted = 0;
+    private final List<String> permissions = new ArrayList<>();
+    private final AtomicBoolean isAllPermissionGranted = new AtomicBoolean(false);
+
 
     /**
      * execute shell commands
@@ -239,8 +231,33 @@ public class MainActivity extends AppCompatActivity {
         b_open = findViewById(R.id.buttonOpen);
         tv = findViewById(R.id.textView);
         setSupportActionBar(myToolbar);
+        List<String> permissionList = new ArrayList<>();
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},1);
+        }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)!= PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if(!permissionList.isEmpty()){
+            String[] p = new String[permissionList.size()];
+            permissionList.toArray(p);
+            ActivityCompat.requestPermissions(this,p,1);
+        } else{
+            isAllPermissionGranted.set(true);
+        }
 
         //qrCodeThread();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+//        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                isAllPermissionGranted.set(permissions.length == this.permissions.size() && Arrays.stream(grantResults).allMatch(r -> r == PackageManager.PERMISSION_GRANTED));
+            }
+        }
     }
 
     Handler handler = new Handler() {
@@ -946,8 +963,8 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Felica card detect failed");
             return -10;
         }
-        felicaCard.pollingCard();
-        /*int i = felicaCard.iWaitForAndAnalyzeFeliCa();
+//        felicaCard.readOpenBlock();
+        int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
             appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
@@ -964,16 +981,16 @@ public class MainActivity extends AppCompatActivity {
         } else{
             appendLog("Can not analyze Felica card");
             return -11;
-        }*/
+        }
         appendLog("Trying to update balance");
-//        String r = felicaCard.readOpenBlock();
-//        if(TextUtils.isEmpty(r)){
-//            appendLog("Can not read open block");
-//            return -11;
-//        } else {
-//            Log.d("open block data", r);
-//            appendLog("open block data :"+r);
-//        }
+        /*String r = felicaCard.readOpenBlock();
+        if(TextUtils.isEmpty(r)){
+            appendLog("Can not read open block");
+            return -11;
+        } else {
+            Log.d("open block data", r);
+            appendLog("open block data :"+r);
+        }*/
 
 
         /*i = felicaCard.updateBalance();

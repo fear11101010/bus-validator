@@ -1,5 +1,7 @@
 package com.decard.exampleSrc.model;
 
+import java.util.Arrays;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,4 +40,18 @@ public class IssuerInfo {
      * length 8 byte
      */
     byte[] binReserved;  // 8
+
+    public static IssuerInfo generateData(byte[] data){
+        return IssuerInfo.builder()
+                .binCardIssuerID(Arrays.copyOfRange(data,0,2))
+                .binIssuerEquipmentClass(data[2])
+                .binIssuerEquipmentClass(data[3])
+                .binCardIssueDate(Arrays.copyOfRange(data,4,6))
+                .binCardRevision(data[6])
+                .binRecycleCounter(data[7])
+                .binReserved(Arrays.copyOfRange(data,8,16))
+                .build();
+    }
 }
+
+
