@@ -15,51 +15,51 @@ public class OperatorInfo {
     /**
      * length 2 byte
      */
-    byte[] binOperatorCode;
+    byte[] operatorCode;
     /**
      * length 1 byte
      */
-    byte binEquipmentClass;
+    byte equipmentClass;
     /**
      * length 2 byte
      */
-    byte[] binStationCode;
+    byte[] stationCode;
     /**
      * length 2 byte
      */
-    byte[] binEquipmentLocation;	//3
+    byte[] equipmentLocation;	//3
     /**
      * length 2 byte
      */
-    byte[] binActivationDate;	//4
+    byte[] activationDate;	//4
     /**
      * length 1 byte
      */
-    byte binStatusFlag;
+    byte statusFlag;
     /**
      * length 1 byte
      */
-    byte binPaymentMethod;
+    byte paymentMethod;
     /**
      * length 2 byte
      */
-    byte[] binDepositAmount;
+    byte[] depositAmount;
     /**
      * length 3 byte
      */
-    byte[] binReserved;
+    byte[] reserved;
 
     public static OperatorInfo generateData(byte[] data){
         return OperatorInfo.builder()
-                .binOperatorCode(Arrays.copyOfRange(data,0,2))
-                .binEquipmentClass(data[2])
-                .binStationCode(Arrays.copyOfRange(data,3,5))
-                .binEquipmentLocation(Arrays.copyOfRange(data,5,7))
-                .binActivationDate(Arrays.copyOfRange(data,7,9))
-                .binStatusFlag(data[9])
-                .binPaymentMethod(data[10])
-                .binDepositAmount(Arrays.copyOfRange(data,11,13))
-                .binReserved(Arrays.copyOfRange(data,13,16))
+                .operatorCode(Arrays.copyOfRange(data,0,2))
+                .equipmentClass(data[2])
+                .stationCode(Arrays.copyOfRange(data,3,5))
+                .equipmentLocation(Arrays.copyOfRange(data,5,7))
+                .activationDate(Arrays.copyOfRange(data,7,9))
+                .statusFlag(data[9])
+                .paymentMethod(data[10])
+                .depositAmount(Arrays.copyOfRange(data,11,13))
+                .reserved(Arrays.copyOfRange(data,13,16))
                 .build();
     }
 }

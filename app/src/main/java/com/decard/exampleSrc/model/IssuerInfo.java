@@ -15,41 +15,41 @@ public class IssuerInfo {
     /**
      * length 2 byte
      */
-    byte[] binCardIssuerID;
+    byte[] cardIssuerID;
     /**
      * length 1 byte
      */
-    byte binIssuerEquipmentClass;
+    byte equipmentClassificationCode;
     /**
      * length 1 byte
      */
-    byte binInitializerId;
+    byte initializerId;
     /**
      * length 2 byte
      */
-    byte[] binCardIssueDate; // 2
+    byte[] cardIssueDate; // 2
     /**
      * length 1 byte
      */
-    byte binCardRevision;
+    byte cardRevision;
     /**
      * length 1 byte
      */
-    byte binRecycleCounter;
+    byte recycleCounter;
     /**
      * length 8 byte
      */
-    byte[] binReserved;  // 8
+    byte[] cardIssuerPrivateInformation ;  // 8
 
     public static IssuerInfo generateData(byte[] data){
         return IssuerInfo.builder()
-                .binCardIssuerID(Arrays.copyOfRange(data,0,2))
-                .binIssuerEquipmentClass(data[2])
-                .binIssuerEquipmentClass(data[3])
-                .binCardIssueDate(Arrays.copyOfRange(data,4,6))
-                .binCardRevision(data[6])
-                .binRecycleCounter(data[7])
-                .binReserved(Arrays.copyOfRange(data,8,16))
+                .cardIssuerID(Arrays.copyOfRange(data,0,2))
+                .equipmentClassificationCode(data[2])
+                .equipmentClassificationCode(data[3])
+                .cardIssueDate(Arrays.copyOfRange(data,4,6))
+                .cardRevision(data[6])
+                .recycleCounter(data[7])
+                .cardIssuerPrivateInformation(Arrays.copyOfRange(data,8,16))
                 .build();
     }
 }

@@ -12,4 +12,5 @@ public class FelicaCardDetail {
     private final OperatorInfo operatorInfo;
     private final StoredLogInformation storedLogInformation;
     private final GateAccessLog gateAccessLog;
+    private final GateAccessLogInformationForTransfer gateAccessLogInformationForTransfer;
 }

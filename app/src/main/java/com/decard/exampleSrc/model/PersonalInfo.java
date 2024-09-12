@@ -16,36 +16,36 @@ public class PersonalInfo {
     /**
      * length 48 byte
      */
-    byte[] binName;
+    byte[] name;
     /**
      * length 6 byte
      */
-    byte[] binPhone;
+    byte[] phone;
     /**
      * length 2 byte
      */
-    byte[] binBirthday;
+    byte[] birthday;
     /**
      * length 4 byte
      */
-    byte[] binEmployeeNumber;
+    byte[] employeeNumber;
     /**
      * length 1 byte
      */
-    byte binPersonalAttrib;
+    byte personalAttribution;
     /**
      * length 3 byte
      */
-    byte[] binReserved;
+    byte[] reserved;
 
     public static PersonalInfo generateData(byte[] data){
         return PersonalInfo.builder()
-                .binName(Arrays.copyOfRange(data,0,48))
-                .binPhone(Arrays.copyOfRange(data,48,48+6))
-                .binBirthday(Arrays.copyOfRange(data,48+6,48+6+2))
-                .binEmployeeNumber(Arrays.copyOfRange(data,48+6+2,48+6+2+4))
-                .binPersonalAttrib(data[48+6+2+4])
-                .binEmployeeNumber(Arrays.copyOfRange(data,48+6+2+4+1,48+6+2+4+1+3))
+                .name(Arrays.copyOfRange(data,0,48))
+                .phone(Arrays.copyOfRange(data,48,48+6))
+                .birthday(Arrays.copyOfRange(data,48+6,48+6+2))
+                .employeeNumber(Arrays.copyOfRange(data,48+6+2,48+6+2+4))
+                .personalAttribution(data[48+6+2+4])
+                .employeeNumber(Arrays.copyOfRange(data,48+6+2+4+1,48+6+2+4+1+3))
                 .build();
     }
 }

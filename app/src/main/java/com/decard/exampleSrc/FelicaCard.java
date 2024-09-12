@@ -7,29 +7,20 @@ import com.decard.exampleSrc.model.AttributeInfo;
 import com.decard.exampleSrc.model.EPurseInfo;
 import com.decard.exampleSrc.model.FelicaCardDetail;
 import com.decard.exampleSrc.model.GateAccessLog;
+import com.decard.exampleSrc.model.GateAccessLogInformationForTransfer;
 import com.decard.exampleSrc.model.GeneralInfo;
-import com.decard.exampleSrc.model.HistoryRecord;
 import com.decard.exampleSrc.model.IssuerInfo;
 import com.decard.exampleSrc.model.OperatorInfo;
 import com.decard.exampleSrc.model.PersonalInfo;
 import com.decard.exampleSrc.model.ReadWriteInCard;
 import com.decard.exampleSrc.model.StoredLogInformation;
 
-import java.nio.ByteBuffer;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.ShortBufferException;
 
 import lombok.Getter;
 
@@ -39,6 +30,7 @@ public class FelicaCard implements ReadWriteInCard {
     private byte[] pMm;
     private byte[] idt;
     private byte[] idi;
+    @Getter
     private byte[] systemCode;
     @Getter
     private FelicaCardDetail felicaCardDetail;
@@ -61,6 +53,7 @@ public class FelicaCard implements ReadWriteInCard {
         }
         return result[2];
     }
+
     public long pollingCard() throws Exception {
         long ret;
 
@@ -77,18 +70,18 @@ public class FelicaCard implements ReadWriteInCard {
         felicaCmdParams[2] = 0x00;            // Timeslot
         felicaCmdParamsLen = 3;
 
-        ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_POLLING,felicaCmdParamsLen,felicaCmdParams,
-                felicaCmdLen,felicaCmd);
-        if(ret==0) return 0;
+        ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_POLLING, felicaCmdParamsLen, felicaCmdParams,
+                felicaCmdLen, felicaCmd);
+        if (ret == 0) return 0;
 
-        ret = transmitDataToFeliCaCard(felicaCmdLen[0],felicaCmd,felicaResLen,felicaRes);
-        if(ret==0) return 0;
+        ret = transmitDataToFeliCaCard(felicaCmdLen[0], felicaCmd, felicaResLen, felicaRes);
+        if (ret == 0) return 0;
 
         return 1;
 
 
-
     }
+
     public int iWaitForAndAnalyzeFeliCa() throws Exception {
         byte[] readData = new byte[256];
         int[] readLen = new int[1];
@@ -97,101 +90,45 @@ public class FelicaCard implements ReadWriteInCard {
         if (ret == 0) {
             return 0;
         }
-        populateFelicaCard(Arrays.copyOfRange(readData,3,readData.length),readLen[0]-3);
+        populateFelicaCard(Arrays.copyOfRange(readData, 3, readData.length), readLen[0] - 3);
         return 1;
     }
 
-    private void populateFelicaCard(byte[] data, int len){
-       byte[] bytes = Arrays.copyOfRange(data,0,len-2);
-        IssuerInfo issuerInfo = IssuerInfo.builder().binCardIssuerID(Arrays.copyOfRange(bytes,0,2))
-                .binIssuerEquipmentClass(bytes[2]).binInitializerId(bytes[3])
-                .binCardIssueDate(Arrays.copyOfRange(bytes,4,6))
-                .binCardRevision(bytes[6]).binRecycleCounter(bytes[7])
-                .binReserved(Arrays.copyOfRange(bytes,8,8+8)).build();
-        PersonalInfo personalInfo = PersonalInfo.builder().binName(Arrays.copyOfRange(bytes,16,16+48))
-                .binPhone(Arrays.copyOfRange(bytes,16+48,16+48+6))
-                .binBirthday(Arrays.copyOfRange(bytes,16+48+6,16+48+6+2))
-                .binEmployeeNumber(Arrays.copyOfRange(bytes,16+48+6+2,16+48+6+2+4))
-                .binPersonalAttrib(bytes[16+48+6+2+4])
-                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1,16+48+6+2+4+1+3))
-                .build();
-        AttributeInfo attributeInfo = AttributeInfo.builder().binCardFunctionCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3,16+48+6+2+4+1+3+2))
-                .binCardControlCode(bytes[16+48+6+2+4+1+3+2])
-                .binDiscountCode(bytes[16+48+6+2+4+1+3+2+1])
-                .binExpiryDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1,16+48+6+2+4+1+3+2+1+1+2))
-                .binTxnDataId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2,16+48+6+2+4+1+3+2+1+1+2+2))
-                .binReplacedCardId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8))
-                .binMerchandizeManagementCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8))
-                .binNegativeValue(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2))
-                .rechargeType(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2])
-                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+1+5))
-                .build();
-        EPurseInfo ePurseInfo =  EPurseInfo.builder()
-                .binRemainingSV(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4))
-                .binCashbackData(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4))
-                .binCompoundData(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5))
-                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5])
-                .binExecutionId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2))
-                .build();
-        OperatorInfo operatorInfo = OperatorInfo.builder()
-                .binOperatorCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2))
-                .binEquipmentClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2])
-                .binStationCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2))
-                .binEquipmentLocation(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2))
-                .binActivationDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2))
-                .binStatusFlag(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2])
-                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1])
-                .binDepositAmount(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2))
-                .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3))
-                .build();
-        StoredLogInformation storedLogInformation = StoredLogInformation.builder()
-                .equipmentClassificationCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3])
-                .serviceClassificationCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1])
-                .contextCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1])
-                .paymentMethodCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1])
-                .date(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2))
-                .time(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2])
-                .place1(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2))
-                .place2(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2))
-                .cardBalance(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3))
-                .storedValueLogId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2))
-                .build();
-        GateAccessLog gateAccessLog = GateAccessLog.builder()
-                .binStatus(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2))
-                .binDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2))
-                .binTime(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2))
-                .binStationCode(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2))
-                .binEquipmentLocation(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2))
-                .binAmountBaseFare(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3))
-                .binAmountDistanceFare(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2+2+2+2+2+3+3))
-                .build();
-
+    private void populateFelicaCard(byte[] data, int len) {
+        byte[] bytes = Arrays.copyOfRange(data, 0, len - 2);
+        IssuerInfo issuerInfo = IssuerInfo.generateData(Arrays.copyOfRange(bytes, 0, 16));
+        PersonalInfo personalInfo = PersonalInfo.generateData(Arrays.copyOfRange(bytes, 16, 16 * 5));
+        AttributeInfo attributeInfo = AttributeInfo.generateData(Arrays.copyOfRange(bytes, 16 * 5, 16 * 7));
+        EPurseInfo ePurseInfo = EPurseInfo.generateData(Arrays.copyOfRange(bytes, 16 * 7, 16 * 8));
+        OperatorInfo operatorInfo = OperatorInfo.generateData(Arrays.copyOfRange(bytes, 16 * 8, 16 * 9));
+        StoredLogInformation storedLogInformation = StoredLogInformation.generateData(Arrays.copyOfRange(bytes, 16 * 9, 16 * 10));
+        GateAccessLog gateAccessLog = GateAccessLog.generateData(Arrays.copyOfRange(bytes, 16 * 10, 16 * 11));
+        GateAccessLogInformationForTransfer gateAccessLogInformationForTransfer = GateAccessLogInformationForTransfer.generateData(Arrays.copyOfRange(bytes, 16 * 11, 16 * 13));
         GeneralInfo generalInfo = GeneralInfo.builder()
                 .binCardID(idi)
-                .binReCycleCounter(issuerInfo.getBinRecycleCounter())
-                .lngRemainingSV(Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4))
-                .lngCashBackData(Utils.charArrayToIntLE(ePurseInfo.getBinCashbackData(),4))
-                .intNegativeValue((short) Utils.charArrayToIntLE(attributeInfo.getBinNegativeValue(),2))
+                .binReCycleCounter(issuerInfo.getRecycleCounter())
+                .lngRemainingSV(Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4))
+                .lngCashBackData(Utils.charArrayToIntLE(ePurseInfo.getBinCashbackData(), 4))
+                .intNegativeValue((short) Utils.charArrayToIntLE(attributeInfo.getBinNegativeValue(), 2))
                 .build();
-        if((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0xC0){
-            generalInfo.setBinCardType((byte)0); // RAPIDPASS_SVC_CARD
+        if ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0xC0) {
+            generalInfo.setBinCardType((byte) 0); // RAPIDPASS_SVC_CARD
         }
-        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x10) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
-            generalInfo.setBinCardType((byte)10); // RAPIDPASS_OPERATOR_CARD
+        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x10) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+            generalInfo.setBinCardType((byte) 10); // RAPIDPASS_OPERATOR_CARD
         }
-        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x20) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
-            generalInfo.setBinCardType((byte)11); // RAPIDPASS_NEXT_CARD
+        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x20) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+            generalInfo.setBinCardType((byte) 11); // RAPIDPASS_NEXT_CARD
         }
-        else if(((attributeInfo.getBinCardFunctionCode()[1] & (byte)0x30)==(byte)0x30) &&((attributeInfo.getBinCardFunctionCode()[0] & (byte)0xFE)==(byte)0x02)){
-            generalInfo.setBinCardType((byte)12); // RAPIDPASS_PREV_CARD
+        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x30) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+            generalInfo.setBinCardType((byte) 12); // RAPIDPASS_PREV_CARD
         }
-        else{
-            generalInfo.setBinCardType((byte)-1);
+        else {
+            generalInfo.setBinCardType((byte) -1);
         }
 
-        this.felicaCardDetail = new FelicaCardDetail(generalInfo,issuerInfo,personalInfo,
-                attributeInfo,ePurseInfo,operatorInfo,storedLogInformation,gateAccessLog);
-        return;
+        this.felicaCardDetail = new FelicaCardDetail(generalInfo, issuerInfo, personalInfo,
+                attributeInfo, ePurseInfo, operatorInfo, storedLogInformation, gateAccessLog,gateAccessLogInformationForTransfer);
 
     }
 
@@ -201,10 +138,6 @@ public class FelicaCard implements ReadWriteInCard {
 
     public byte[] getPMm() {
         return pMm;
-    }
-
-    public byte[] getSystemCode() {
-        return systemCode;
     }
 
     public int mutualAuthV2WithFeliCa(byte serviceCodeNum,
@@ -297,7 +230,7 @@ public class FelicaCard implements ReadWriteInCard {
             return 0;
         }
 
-        Log.d("felicaCommandFinal", "felicaCommandFinal: "+result[1]);
+        Log.d("felicaCommandFinal", "felicaCommandFinal: " + result[1]);
 
         byte[] hexToByte = Utils.hexToByte(result[1]);
         // HexDump(receiveLen, receiveBuf, "C <- Felica");
@@ -305,7 +238,7 @@ public class FelicaCard implements ReadWriteInCard {
             return 0;
         }
         receiveLen = hexToByte.length;
-        System.arraycopy(hexToByte, 1, felicaResBuf, 0, receiveLen-1);
+        System.arraycopy(hexToByte, 1, felicaResBuf, 0, receiveLen - 1);
         felicaResLen[0] = receiveLen - 1;
 
         return 1;
@@ -313,21 +246,21 @@ public class FelicaCard implements ReadWriteInCard {
 
     @Override
     public int readData() throws Exception {
-        if(iWaitForAndAnalyzeFeliCa()==0){
+        if (iWaitForAndAnalyzeFeliCa() == 0) {
             return 0;
         }
         return 1;
     }
 
     @Override
-    public int writeInCard(int serviceNum, byte[] serviceList, int blockNum, byte[] blockList, byte[] blockData) throws Exception{
+    public int writeInCard(int serviceNum, byte[] serviceList, int blockNum, byte[] blockList, byte[] blockData) throws Exception {
         int ret = mutualAuthV2WithFeliCa((byte) serviceNum, serviceList);
         if (ret == 0) {
             return 0;
         }
 
-        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
-        if(ret==0){
+        ret = writeBlockData(blockNum, blockNum * 2, blockList, blockData);
+        if (ret == 0) {
             return 0;
         }
         return 1;
@@ -343,7 +276,7 @@ public class FelicaCard implements ReadWriteInCard {
         felicaCmdParams[0] = idt[0];
         felicaCmdParams[1] = idt[1];
         felicaCmdParams[2] = blockNum;
-        System.arraycopy(blockList, 0, felicaCmdParams, 2+1, blockNum * 2);
+        System.arraycopy(blockList, 0, felicaCmdParams, 2 + 1, blockNum * 2);
         felicaCmdParamsLen = 2 + 1 + blockNum * 2;
         int ret = (int) sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_READ, felicaCmdParamsLen, felicaCmdParams, felicaCmdLen, felicaCmd);
         if (ret == 0) {
@@ -406,7 +339,7 @@ public class FelicaCard implements ReadWriteInCard {
             return 0;
         }
 
-        blockNum = 12;
+        blockNum = 13;
         blockList[0] = (byte) 0x80;    //file 1, issuer file
         blockList[1] = 0x00;    //0th block
         blockList[2] = (byte) 0x81;    //file 2, personal info
@@ -431,6 +364,8 @@ public class FelicaCard implements ReadWriteInCard {
         blockList[21] = 0x00;    //0th block
         blockList[22] = (byte) 0x87;    //file 7, Gate Access Log for transfer file
         blockList[23] = 0x00;    //0th block
+        blockList[24] = (byte) 0x87;    //file 7, Gate Access Log for transfer file
+        blockList[25] = 0x01;    //1th block
 
         ret = readDataBlock(blockNum, blockList, plngReadLen, pbinReadData);
         if (ret == 0) {
@@ -442,7 +377,7 @@ public class FelicaCard implements ReadWriteInCard {
 
     public int updateBalance() throws Exception {
         byte serviceNum, blockNum;
-        byte[] serviceList = new byte[64], blockList = new byte[128],blockData = new byte[256];
+        byte[] serviceList = new byte[64], blockList = new byte[128], blockData = new byte[256];
         int[] readLen = new int[1];
         serviceNum = 3;
         serviceList[0] = 0x08; //Card Attribute Information
@@ -483,62 +418,62 @@ public class FelicaCard implements ReadWriteInCard {
         StoredLogInformation storedLogInformation = new StoredLogInformation();
         writeStoredLogInformationBlockForRecharge(storedLogInformation);
 
-        System.arraycopy(this.getFelicaCardDetail().getAttributeInfo().getData(),0,blockData,0,2*16);
-        System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(),0,blockData,32,16);
-        System.arraycopy(storedLogInformation.getData(),0,blockData,32+16,16);
+        System.arraycopy(this.getFelicaCardDetail().getAttributeInfo().getData(), 0, blockData, 0, 2 * 16);
+        System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(), 0, blockData, 32, 16);
+        System.arraycopy(storedLogInformation.getData(), 0, blockData, 32 + 16, 16);
 
         Log.d("blockdata", Arrays.toString(blockData));
 
-        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
-        if(ret==0){
+        ret = writeBlockData(blockNum, blockNum * 2, blockList, blockData);
+        if (ret == 0) {
             return 0;
         }
         return 1;
     }
 
-    public  void writeEPurseInfoForRecharge(EPurseInfo ePurseInfo){
-        int balance = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4)+Utils.charArrayToIntLE(new byte[]{0x64,0x00, 0x00, 0x00},4)
-                -Utils.charArrayToIntLE(this.felicaCardDetail.getAttributeInfo().getBinNegativeValue(), 2);
+    public void writeEPurseInfoForRecharge(EPurseInfo ePurseInfo) {
+        int balance = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4) + Utils.charArrayToIntLE(new byte[]{0x64, 0x00, 0x00, 0x00}, 4)
+                - Utils.charArrayToIntLE(this.felicaCardDetail.getAttributeInfo().getBinNegativeValue(), 2);
 //        byte[] newBalance = new byte[4];
-        Log.d("new balance", balance+"");
+        Log.d("new balance", balance + "");
         ePurseInfo.setBinRemainingSV(Utils.intToCharArrayLE(balance));
         Log.d("new balance in byte:", Arrays.toString(ePurseInfo.getBinRemainingSV()));
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddhhmm", Locale.ENGLISH);
         String date = dateFormat.format(new Date());
-        Map<String,String> map = Utils.getYearMonthDateHourMinute();
+        Map<String, String> map = Utils.getYearMonthDateHourMinute();
 
         // Generate year, month and data
-        String year = String.format("%7s",Integer.toBinaryString(Integer.parseInt(date.substring(0,2)))).replace(' ','0');
-        String month = String.format("%4s",Integer.toBinaryString(Integer.parseInt(date.substring(2,4)))).replace(' ','0');
-        String day = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(4,6)))).replace(' ','0');
+        String year = String.format("%7s", Integer.toBinaryString(Integer.parseInt(date.substring(0, 2)))).replace(' ', '0');
+        String month = String.format("%4s", Integer.toBinaryString(Integer.parseInt(date.substring(2, 4)))).replace(' ', '0');
+        String day = String.format("%5s", Integer.toBinaryString(Integer.parseInt(date.substring(4, 6)))).replace(' ', '0');
 
-        String dateInHex = String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2));
+        String dateInHex = String.format("%04X", Integer.parseInt(map.get("year") + map.get("month") + map.get("day"), 2));
         Log.d("dateInHex", dateInHex);
 
         // Generate hour , minute and region code
-        String hour = String.format("%5s",Integer.toBinaryString(Integer.parseInt(date.substring(6,8)))).replace(' ','0');
-        String minute = String.format("%6s",Integer.toBinaryString(Integer.parseInt(date.substring(8,10)))).replace(' ','0');
-        String regionCode = String.format("%5s",Integer.toBinaryString(10)).replace(' ','0');
-        String regionAndHourAndMinuteInHex = String.format("%04X",Integer.parseInt(map.get("hour")+map.get("minute")+regionCode,2));
+        String hour = String.format("%5s", Integer.toBinaryString(Integer.parseInt(date.substring(6, 8)))).replace(' ', '0');
+        String minute = String.format("%6s", Integer.toBinaryString(Integer.parseInt(date.substring(8, 10)))).replace(' ', '0');
+        String regionCode = String.format("%5s", Integer.toBinaryString(10)).replace(' ', '0');
+        String regionAndHourAndMinuteInHex = String.format("%04X", Integer.parseInt(map.get("hour") + map.get("minute") + regionCode, 2));
 
         // Generate compound data 2+2+1
         byte[] compoundData = new byte[5];
-        System.arraycopy(Utils.hexToByte(dateInHex),0,compoundData,0,2);
-        System.arraycopy(Utils.hexToByte(regionAndHourAndMinuteInHex),0,compoundData,2,2);
-        compoundData[4] = (byte)0x01;
+        System.arraycopy(Utils.hexToByte(dateInHex), 0, compoundData, 0, 2);
+        System.arraycopy(Utils.hexToByte(regionAndHourAndMinuteInHex), 0, compoundData, 2, 2);
+        compoundData[4] = (byte) 0x01;
 
         // Set payment method
-        ePurseInfo.setBinPaymentMethod((byte)0x01);
+        ePurseInfo.setBinPaymentMethod((byte) 0x01);
         ePurseInfo.setBinCompoundData(compoundData);
 
         // Increment execution id by 1
         Log.d("executionId", Arrays.toString(ePurseInfo.getBinExecutionId()));
-        int executionId = Integer.parseInt(Utils.byteToHex(ePurseInfo.getBinExecutionId()),16)+1;
-        Log.d("executionId", String.format("%04x",executionId));
-        ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04x",executionId)));
+        int executionId = Integer.parseInt(Utils.byteToHex(ePurseInfo.getBinExecutionId()), 16) + 1;
+        Log.d("executionId", String.format("%04x", executionId));
+        ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04x", executionId)));
     }
 
-    public  void writeStoredLogInformationBlockForRecharge(StoredLogInformation storedLogInformation){
+    public void writeStoredLogInformationBlockForRecharge(StoredLogInformation storedLogInformation) {
 //        SimpleDateFormat dateFormat = new SimpleDateFormat("yyMMddhh", Locale.ENGLISH);
 //        String date = dateFormat.format(new Date());
 
@@ -551,32 +486,32 @@ public class FelicaCard implements ReadWriteInCard {
 //        String dateInHex = Integer.toHexString(Integer.parseInt(year+month+day,2)).toUpperCase();
 //        Log.d("dateInHex", dateInHex);
 
-        Map<String,String> map = Utils.getYearMonthDateHourMinute();
+        Map<String, String> map = Utils.getYearMonthDateHourMinute();
 
         storedLogInformation.setEquipmentClassificationCode((byte) 0x25);
         storedLogInformation.setServiceClassificationCode((byte) 0x60);
         storedLogInformation.setContextCode((byte) 0x02);
         storedLogInformation.setPaymentMethodCode((byte) 0x01);
-        Log.d("storedlogdate :", String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)));
-        Log.d("storedlogdate in decimal:", Integer.parseInt(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)),16)+"");
-        int i = Integer.parseInt(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2)),16);
+        Log.d("storedlogdate :", String.format("%04X", Integer.parseInt(map.get("year") + map.get("month") + map.get("day"), 2)));
+        Log.d("storedlogdate in decimal:", Integer.parseInt(String.format("%04X", Integer.parseInt(map.get("year") + map.get("month") + map.get("day"), 2)), 16) + "");
+        int i = Integer.parseInt(String.format("%04X", Integer.parseInt(map.get("year") + map.get("month") + map.get("day"), 2)), 16);
 
-        storedLogInformation.setDate(Utils.hexToByte(String.format("%04X",Integer.parseInt(map.get("year")+map.get("month")+map.get("day"),2))));
-        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X",Integer.parseInt(map.get("hour")+"000",2)).toUpperCase())[0]);
+        storedLogInformation.setDate(Utils.hexToByte(String.format("%04X", Integer.parseInt(map.get("year") + map.get("month") + map.get("day"), 2))));
+        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X", Integer.parseInt(map.get("hour") + "000", 2)).toUpperCase())[0]);
         storedLogInformation.setPlace1(Utils.hexToByte("0105"));
-        storedLogInformation.setPlace2(new byte[]{0x00,0x00});
-        storedLogInformation.setCardBalance(Arrays.copyOfRange(this.felicaCardDetail.getEPurseInfo().getBinRemainingSV(),0,3));
+        storedLogInformation.setPlace2(new byte[]{0x00, 0x00});
+        storedLogInformation.setCardBalance(Arrays.copyOfRange(this.felicaCardDetail.getEPurseInfo().getBinRemainingSV(), 0, 3));
         storedLogInformation.setStoredValueLogId(this.felicaCardDetail.getEPurseInfo().getBinExecutionId());
     }
 
-    public void writeAttributeInformationBlock(AttributeInfo attributeInfo){
+    public void writeAttributeInformationBlock(AttributeInfo attributeInfo) {
         String hex = Utils.byteToHex(attributeInfo.getBinTxnDataId());
-        int i = Integer.parseInt(hex,16);
-        String newTxnId = String.format("%04X",i+1);
+        int i = Integer.parseInt(hex, 16);
+        String newTxnId = String.format("%04X", i + 1);
         attributeInfo.setBinTxnDataId(Utils.hexToByte(newTxnId));
     }
 
-    private int writeBlockData(int blockNum,int blockLen,byte[] blockList,byte[] blockData) throws Exception {
+    private int writeBlockData(int blockNum, int blockLen, byte[] blockList, byte[] blockData) throws Exception {
         long _ret;
 
         byte[] felicaCmdParams = new byte[256];
@@ -588,31 +523,31 @@ public class FelicaCard implements ReadWriteInCard {
         int[] samResLen = new int[1];
         int[] felicaResLen = new int[1];
         int[] felicaCmdLen = new int[1];
-        felicaCmdParams[0] =						this.idt[0];						// this.idt
-        felicaCmdParams[1] =						this.idt[1];						// IDt
-        felicaCmdParams[2] =						(byte)blockNum;					// Number of Blocks
-        System.arraycopy(blockList,0,			felicaCmdParams,3, blockLen);		// block list
-        System.arraycopy(blockData,0,			felicaCmdParams,3+blockLen, blockNum*16);		// block list
-        felicaCmdParamsLen = 3 + blockLen + blockNum*16;
+        felicaCmdParams[0] = this.idt[0];                        // this.idt
+        felicaCmdParams[1] = this.idt[1];                        // IDt
+        felicaCmdParams[2] = (byte) blockNum;                    // Number of Blocks
+        System.arraycopy(blockList, 0, felicaCmdParams, 3, blockLen);        // block list
+        System.arraycopy(blockData, 0, felicaCmdParams, 3 + blockLen, blockNum * 16);        // block list
+        felicaCmdParamsLen = 3 + blockLen + blockNum * 16;
 
-        _ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_WRITE,felicaCmdParamsLen,felicaCmdParams,felicaCmdLen,felicaCmd);
-        if(_ret==0){
+        _ret = sam.askFeliCaCmdToSAM(SAMCommandCodes.SAM_COMMAND_CODE_WRITE, felicaCmdParamsLen, felicaCmdParams, felicaCmdLen, felicaCmd);
+        if (_ret == 0) {
             return 0;
         }
 
-        _ret = transmitDataToFeliCaCard(felicaCmdLen[0]-2,felicaCmd,felicaResLen,felicaRes);
-        if(_ret==0){
+        _ret = transmitDataToFeliCaCard(felicaCmdLen[0] - 2, felicaCmd, felicaResLen, felicaRes);
+        if (_ret == 0) {
             return 0;
         }
-        _ret = sam.sendCardResultToSAM(felicaResLen[0],felicaRes,samResLen,samResBuf);
-        if(_ret==0){
+        _ret = sam.sendCardResultToSAM(felicaResLen[0], felicaRes, samResLen, samResBuf);
+        if (_ret == 0) {
             return 0;
         }
 
         return 1;
     }
 
-    public String readOpenBlock(){
+    public String readOpenBlock() {
         /*String[] cmd = new String[]{
             "10","06",Utils.byteToHex(this.iDm),"01","0F22","01"
         };
@@ -622,12 +557,12 @@ public class FelicaCard implements ReadWriteInCard {
         String c = "40012E30D4B6153B6100070A110A120A1310140A210C220C251CC7E1731891F537EB9994E5929DF4F39000";
         byte[] b = new byte[255];
         byte[] b1 = Utils.hexToByte(c);
-        b[0] = (byte) (b1.length+1);
-        System.arraycopy(b1,0,b,1,b1.length);
-        String[] r = BasicOper.dc_FeliCaApdu(Utils.byteToHex(Arrays.copyOfRange(b,0,b1.length+1))).split("\\|",-1);
-        if(Objects.equals(r[0], "0000")){
-            Log.d("jewel_vai", r[r.length-1]);
-            return r[r.length-1];
+        b[0] = (byte) (b1.length + 1);
+        System.arraycopy(b1, 0, b, 1, b1.length);
+        String[] r = BasicOper.dc_FeliCaApdu(Utils.byteToHex(Arrays.copyOfRange(b, 0, b1.length + 1))).split("\\|", -1);
+        if (Objects.equals(r[0], "0000")) {
+            Log.d("jewel_vai", r[r.length - 1]);
+            return r[r.length - 1];
         }
         /*StringBuilder builder = new StringBuilder();
         for(int i=0;i<20;i++) {

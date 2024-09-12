@@ -969,10 +969,10 @@ public class MainActivity extends AppCompatActivity {
             appendLog("Felica card analyze successfully");
             appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
             appendLog("txnid :"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getAttributeInfo().getBinTxnDataId()));
-            appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinName()));
-            appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinPhone()));
-            appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinBirthday()));
-            appendLog("reserved: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getPersonalInfo().getBinReserved()));
+            appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getName()));
+            appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getPhone()));
+            appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBirthday()));
+            appendLog("reserved: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getPersonalInfo().getReserved()));
             appendLog("getLngRemainingSV in hex: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getEPurseInfo().getBinRemainingSV()));
             appendLog("getLngRemainingSV: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngRemainingSV());
             appendLog("getIntNegativeValue: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getIntNegativeValue());
