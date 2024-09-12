@@ -29,6 +29,7 @@ public class ExampleUnitTest {
 
     @Test
     public void getDate(){
-        Utils.getYearMonthDateHourMinute();
+        int len = "1006012e30d4b6153b61010F22018000".length();
+        System.out.println(len);
     }
 }
