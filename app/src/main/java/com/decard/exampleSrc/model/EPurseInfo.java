@@ -1,5 +1,7 @@
 package com.decard.exampleSrc.model;
 
+import java.util.Arrays;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,9 +34,21 @@ public class EPurseInfo {
     byte[] binExecutionId;
 
     /**
-     * Get data in byte
+     * Generate data from byte
      */
 
+    public static EPurseInfo generateData(byte[] data){
+        return EPurseInfo.builder()
+                .binRemainingSV(Arrays.copyOfRange(data,0,4))
+                .binCashbackData(Arrays.copyOfRange(data,4,8))
+                .binCompoundData(Arrays.copyOfRange(data,8,13))
+                .binPaymentMethod(data[13])
+                .binExecutionId(Arrays.copyOfRange(data,14,2))
+                .build();
+    }
+    /**
+     * Get data in byte
+     */
     public byte[] getData(){
         byte[] bytes = new byte[16];
         System.arraycopy(getBinRemainingSV(),0,bytes,0,4);

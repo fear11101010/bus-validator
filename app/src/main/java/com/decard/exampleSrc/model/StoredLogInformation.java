@@ -1,9 +1,17 @@
 package com.decard.exampleSrc.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class StoredLogInformation {
 
     private byte equipmentClassificationCode; // BIN 1
@@ -20,6 +28,21 @@ public class StoredLogInformation {
     private byte[] cardBalance;                  // BIN 3 (handled as 3 bytes)
 
     private byte[] storedValueLogId;           // BIN 2
+
+    public static StoredLogInformation generateData(byte[] data){
+        return StoredLogInformation.builder()
+                .equipmentClassificationCode(data[0])
+                .serviceClassificationCode(data[1])
+                .contextCode(data[2])
+                .paymentMethodCode(data[3])
+                .date(Arrays.copyOfRange(data,4,6))
+                .time(data[6])
+                .place1(Arrays.copyOfRange(data,7,9))
+                .place2(Arrays.copyOfRange(data,9,11))
+                .cardBalance(Arrays.copyOfRange(data,11,14))
+                .storedValueLogId(Arrays.copyOfRange(data,14,16))
+                .build();
+    }
 
     public byte[] getData() {
         ByteBuffer buffer = ByteBuffer.allocate(16); // Total bytes = 16 (1+1+1+1+2+1+2+2+3+2)

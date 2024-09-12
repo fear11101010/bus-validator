@@ -12,6 +12,7 @@ import com.decard.exampleSrc.model.HistoryRecord;
 import com.decard.exampleSrc.model.IssuerInfo;
 import com.decard.exampleSrc.model.OperatorInfo;
 import com.decard.exampleSrc.model.PersonalInfo;
+import com.decard.exampleSrc.model.ReadWriteInCard;
 import com.decard.exampleSrc.model.StoredLogInformation;
 
 import java.nio.ByteBuffer;
@@ -23,6 +24,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -31,7 +33,7 @@ import javax.crypto.ShortBufferException;
 
 import lombok.Getter;
 
-public class FelicaCard {
+public class FelicaCard implements ReadWriteInCard {
     private final Sam sam;
     private byte[] iDm;
     private byte[] pMm;
@@ -55,6 +57,7 @@ public class FelicaCard {
             this.iDm = Arrays.copyOfRange(Utils.hexToByte(result[2]), 0, 8);
             this.pMm = Arrays.copyOfRange(Utils.hexToByte(result[2]), 8, 16);
             this.systemCode = Arrays.copyOfRange(Utils.hexToByte(result[2]), 16, 18);
+            Log.d("IDm", Utils.byteToHex(iDm));
         }
         return result[2];
     }
@@ -141,17 +144,17 @@ public class FelicaCard {
                 .binDepositAmount(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2))
                 .binReserved(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+1+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3))
                 .build();
-        HistoryRecord historyRecord = HistoryRecord.builder()
-                .binEquipmentClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3])
-                .binServiceClass(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1])
-                .binContextCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1])
-                .binPaymentMethod(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1])
-                .binDate(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2))
-                .binTime(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2])
-                .binPlace1(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2))
-                .binPlace2(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2))
-                .binCardBalance(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3))
-                .binSVLogId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2))
+        StoredLogInformation storedLogInformation = StoredLogInformation.builder()
+                .equipmentClassificationCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3])
+                .serviceClassificationCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1])
+                .contextCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1])
+                .paymentMethodCode(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1])
+                .date(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2))
+                .time(bytes[16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2])
+                .place1(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2))
+                .place2(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2))
+                .cardBalance(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3))
+                .storedValueLogId(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2))
                 .build();
         GateAccessLog gateAccessLog = GateAccessLog.builder()
                 .binStatus(Arrays.copyOfRange(bytes,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2,16+48+6+2+4+1+3+2+1+1+2+2+8+8+2+6+4+4+5+1+2+2+1+2+2+2+1+1+2+3+1+1+1+1+2+1+2+2+3+2+2))
@@ -187,7 +190,7 @@ public class FelicaCard {
         }
 
         this.felicaCardDetail = new FelicaCardDetail(generalInfo,issuerInfo,personalInfo,
-                attributeInfo,ePurseInfo,operatorInfo,historyRecord,gateAccessLog);
+                attributeInfo,ePurseInfo,operatorInfo,storedLogInformation,gateAccessLog);
         return;
 
     }
@@ -233,6 +236,7 @@ public class FelicaCard {
         long felicaCmdRes = sam.askFeliCaCmdToSAMSC(SAMCommandCodes.SAM_COMMAND_CODE_MUTUAL_AUTH_V2_RWSAM,
                 SAMCommandCodes.SAM_SUB_COMMAND_CODE_MUTUAL_AUTH_V2_RWSAM, felicaCmdParamsLen,
                 felicaCmdParams, felicaCmdLen, felicaCmd);
+//        Log.d("TAG", "mutualAuthV2WithFeliCa: ");
         if (felicaCmdRes == 0) {
             return 0;
         }
@@ -271,7 +275,6 @@ public class FelicaCard {
 
     }
 
-
     public int transmitDataToFeliCaCard(int felicaCmdLen, byte[] felicaCmdBuf, int[] felicaResLen, byte[] felicaResBuf) {
         int ret = 0;
         byte[] sendBuf = new byte[262];
@@ -285,6 +288,7 @@ public class FelicaCard {
         receiveLen = 262;
 
         // HexDump(sendLen, sendBuf, "C -> Felica");
+        Log.d("felicaCmd", Utils.byteToHex(Arrays.copyOfRange(sendBuf, 0, sendLen)));
         String[] result = BasicOper.dc_FeliCaApdu(Utils.byteToHex(Arrays.copyOfRange(sendBuf, 0, sendLen))).split("\\|", -1);
 //        ret = ctosFelicaReadWrite(sendBuf, sendLen, receiveBuf, receiveLen, 3000);
 
@@ -306,6 +310,29 @@ public class FelicaCard {
 
         return 1;
     }
+
+    @Override
+    public int readData() throws Exception {
+        if(iWaitForAndAnalyzeFeliCa()==0){
+            return 0;
+        }
+        return 1;
+    }
+
+    @Override
+    public int writeInCard(int serviceNum, byte[] serviceList, int blockNum, byte[] blockList, byte[] blockData) throws Exception{
+        int ret = mutualAuthV2WithFeliCa((byte) serviceNum, serviceList);
+        if (ret == 0) {
+            return 0;
+        }
+
+        ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
+        if(ret==0){
+            return 0;
+        }
+        return 1;
+    }
+
 
     public int readDataBlock(byte blockNum, byte[] blockList, int[] readLen, byte[] readData) throws Exception {
         byte[] felicaCmdParams = new byte[256], felicaCmd = new byte[262], felicaRes = new byte[262];
@@ -334,11 +361,12 @@ public class FelicaCard {
 
     }
 
+
     public int readFiles(byte[] pbinReadData, int[] plngReadLen) throws Exception {
         byte serviceNum, blockNum;
         byte[] serviceList = new byte[64], blockList = new byte[128];
         int[] readLen = new int[1];
-        serviceNum = 7;
+        serviceNum = 8;
         serviceList[0] = 0x0A; //Issuer info file
         serviceList[1] = 0x11; //Issuer info file
         serviceList[2] = 0x01; //Service key ver
@@ -347,33 +375,38 @@ public class FelicaCard {
         serviceList[5] = 0x12; //Personal info file
         serviceList[6] = 0x01; //Service key ver
         serviceList[7] = 0x00; //Service key ver
-        serviceList[8] = 0x0A; //Card attrib info file
-        serviceList[9] = 0x13; //Card attrib info file
+        serviceList[8] = 0x0A; //Card attribute info file
+        serviceList[9] = 0x13; //Card attribute info file
         serviceList[10] = 0x01; //Service key ver
         serviceList[11] = 0x00; //Service key ver
-        serviceList[12] = 0x10; //Direct Access of purse
-        serviceList[13] = 0x14; //Direct Access of purse
+        serviceList[12] = 0x10; //EPurse info file
+        serviceList[13] = 0x14; //EPurse info file
         serviceList[14] = 0x01; //Service key ver
         serviceList[15] = 0x00; //Service key ver
         serviceList[16] = 0x0A; //Operator info file
         serviceList[17] = 0x21; //Operator info file
         serviceList[18] = 0x01; //Service key ver
         serviceList[19] = 0x00; //Service key ver
-        serviceList[20] = 0x0C; //History file
-        serviceList[21] = 0x22; //History file
+        serviceList[20] = 0x0C; //Stored value log file
+        serviceList[21] = 0x22; //Stored value log file
         serviceList[22] = 0x01; //Service key ver
         serviceList[23] = 0x00; //Service key ver
-        serviceList[24] = 0x0C; //Gate access History file
-        serviceList[25] = 0x25; //gate access History file
+        serviceList[24] = 0x0C; //Gate access log file
+        serviceList[25] = 0x25; //gate access log file
         serviceList[26] = 0x01; //Service key ver
         serviceList[27] = 0x00; //Service key ver
+        serviceList[28] = 0x08; //Gate access log for transfer file
+        serviceList[29] = 0x26; //gate access log for transfer file
+        serviceList[30] = 0x01; //Service key ver
+        serviceList[31] = 0x00; //Service key ver
+
 
         int ret = mutualAuthV2WithFeliCa(serviceNum, serviceList);
         if (ret == 0) {
             return 0;
         }
 
-        blockNum = 11;
+        blockNum = 12;
         blockList[0] = (byte) 0x80;    //file 1, issuer file
         blockList[1] = 0x00;    //0th block
         blockList[2] = (byte) 0x81;    //file 2, personal info
@@ -396,6 +429,8 @@ public class FelicaCard {
         blockList[19] = 0x00;    //0th block
         blockList[20] = (byte) 0x86;    //file 7, Gate Access Log file
         blockList[21] = 0x00;    //0th block
+        blockList[22] = (byte) 0x87;    //file 7, Gate Access Log for transfer file
+        blockList[23] = 0x00;    //0th block
 
         ret = readDataBlock(blockNum, blockList, plngReadLen, pbinReadData);
         if (ret == 0) {
@@ -452,12 +487,12 @@ public class FelicaCard {
         System.arraycopy(this.getFelicaCardDetail().getEPurseInfo().getData(),0,blockData,32,16);
         System.arraycopy(storedLogInformation.getData(),0,blockData,32+16,16);
 
-       /* Log.d("blockdata", Arrays.toString(blockData));
+        Log.d("blockdata", Arrays.toString(blockData));
 
         ret = writeBlockData(blockNum,blockNum*2,blockList,blockData);
         if(ret==0){
             return 0;
-        }*/
+        }
         return 1;
     }
 
@@ -578,22 +613,32 @@ public class FelicaCard {
     }
 
     public String readOpenBlock(){
-        String[] cmd = new String[]{
+        /*String[] cmd = new String[]{
             "10","06",Utils.byteToHex(this.iDm),"01","0F22","01"
         };
         String[] blockList = new String[]{"8000","8001","8002","8003","8004","8005","8006","8007","8008","8009","8010","8011",
-                "8012","8013","8014","8015","8017","8018","8019"};
+                "8012","8013","8014","8015","8017","8018","8019"};*/
 
-
-        StringBuilder builder = new StringBuilder();
+        String c = "40012E30D4B6153B6100070A110A120A1310140A210C220C251CC7E1731891F537EB9994E5929DF4F39000";
+        byte[] b = new byte[255];
+        byte[] b1 = Utils.hexToByte(c);
+        b[0] = (byte) (b1.length+1);
+        System.arraycopy(b1,0,b,1,b1.length);
+        String[] r = BasicOper.dc_FeliCaApdu(Utils.byteToHex(Arrays.copyOfRange(b,0,b1.length+1))).split("\\|",-1);
+        if(Objects.equals(r[0], "0000")){
+            Log.d("jewel_vai", r[r.length-1]);
+            return r[r.length-1];
+        }
+        /*StringBuilder builder = new StringBuilder();
         for(int i=0;i<20;i++) {
             String apdu = String.join("",cmd)+blockList[i];
-            //1006012E30D4B6154266010F22018000
+            //
+            //1006012e30d4b6153b61010F22018000
             String[] result = BasicOper.dc_FeliCaApdu(apdu).split("\\|", -1);
             if (result[0].equals("0000")) {
                 builder.append(result[1]);
             }
-        }
+        }*/
         return null;
     }
 

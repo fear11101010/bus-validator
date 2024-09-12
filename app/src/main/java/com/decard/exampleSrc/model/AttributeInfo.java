@@ -1,6 +1,7 @@
 package com.decard.exampleSrc.model;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -48,6 +49,21 @@ public class AttributeInfo {
      * length 5 byte
      */
     byte[] binReserved;
+
+    public static AttributeInfo generateData(byte[] data){
+        return AttributeInfo.builder()
+                .binCardFunctionCode(Arrays.copyOfRange(data,0,2))
+                .binCardControlCode(data[2])
+                .binDiscountCode(data[3])
+                .binExpiryDate(Arrays.copyOfRange(data,4,6))
+                .binTxnDataId(Arrays.copyOfRange(data,6,8))
+                .binReplacedCardId(Arrays.copyOfRange(data,8,16))
+                .binMerchandizeManagementCode(Arrays.copyOfRange(data,16,24))
+                .binNegativeValue(Arrays.copyOfRange(data,24,26))
+                .rechargeType(data[26])
+                .binReserved(Arrays.copyOfRange(data,27,32))
+                .build();
+    }
 
 
     public byte[] getData(){
