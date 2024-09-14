@@ -16,30 +16,30 @@ public class AttributeInfo {
     /**
      * length 2 byte
      */
-    byte[] binCardFunctionCode; // 1-2
-    byte binCardControlCode;
-    byte binDiscountCode;
+    byte[] cardFunctionCode; // 1-2
+    byte cardControlCode;
+    byte discountCode;
     /**
      * length 2 byte
      */
-    byte[] binExpiryDate;
+    byte[] expiryDate;
     /**
      * length 2 byte
      */
 //3
-    byte[] binTxnDataId;//4
+    byte[] txnDataId;//4
     /**
      * length 8 byte
      */
-    byte[] binReplacedCardId;
+    byte[] replacedCardId;
     /**
      * length 8 byte
      */
-    byte[] binMerchandizeManagementCode;
+    byte[] merchendizeManagementCode;
     /**
      * length 2 byte
      */
-    byte[] binNegativeValue;
+    byte[] negativeValue;
     /**
      * length 1 byte
      */
@@ -48,36 +48,39 @@ public class AttributeInfo {
     /**
      * length 5 byte
      */
-    byte[] binReserved;
+    byte[] reserved;
 
     public static AttributeInfo generateData(byte[] data){
         return AttributeInfo.builder()
-                .binCardFunctionCode(Arrays.copyOfRange(data,0,2))
-                .binCardControlCode(data[2])
-                .binDiscountCode(data[3])
-                .binExpiryDate(Arrays.copyOfRange(data,4,6))
-                .binTxnDataId(Arrays.copyOfRange(data,6,8))
-                .binReplacedCardId(Arrays.copyOfRange(data,8,16))
-                .binMerchandizeManagementCode(Arrays.copyOfRange(data,16,24))
-                .binNegativeValue(Arrays.copyOfRange(data,24,26))
+                .cardFunctionCode(Arrays.copyOfRange(data,0,2))
+                .cardControlCode(data[2])
+                .discountCode(data[3])
+                .expiryDate(Arrays.copyOfRange(data,4,6))
+                .txnDataId(Arrays.copyOfRange(data,6,8))
+                .replacedCardId(Arrays.copyOfRange(data,8,16))
+                .merchendizeManagementCode(Arrays.copyOfRange(data,16,24))
+                .negativeValue(Arrays.copyOfRange(data,24,26))
                 .rechargeType(data[26])
-                .binReserved(Arrays.copyOfRange(data,27,32))
+                .reserved(Arrays.copyOfRange(data,27,32))
                 .build();
     }
 
-
+    /**
+     * size of byte array 32
+     * @return array of byte
+     */
     public byte[] getData(){
         ByteBuffer byteBuffer = ByteBuffer.allocate(32);
-        byteBuffer.put(getBinCardFunctionCode());
-        byteBuffer.put(getBinCardControlCode());
-        byteBuffer.put(getBinDiscountCode());
-        byteBuffer.put(getBinExpiryDate());
-        byteBuffer.put(getBinTxnDataId());
-        byteBuffer.put(getBinReplacedCardId());
-        byteBuffer.put(getBinMerchandizeManagementCode());
-        byteBuffer.put(getBinNegativeValue());
+        byteBuffer.put(getCardFunctionCode());
+        byteBuffer.put(getCardControlCode());
+        byteBuffer.put(getDiscountCode());
+        byteBuffer.put(getExpiryDate());
+        byteBuffer.put(getTxnDataId());
+        byteBuffer.put(getReplacedCardId());
+        byteBuffer.put(getMerchendizeManagementCode());
+        byteBuffer.put(getNegativeValue());
         byteBuffer.put(getRechargeType());
-        byteBuffer.put(getBinReserved());
+        byteBuffer.put(getReserved());
         return byteBuffer.array();
     }
 }

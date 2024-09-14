@@ -4,22 +4,21 @@ import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 
-import com.decard.NDKMethod.BasicOper;
+import com.decard.exampleSrc.FelicaCard;
 import com.decard.exampleSrc.Utils;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.Setter;
 
-@Data
-@AllArgsConstructor
+@Setter
+@Getter
 public class Ride {
     private final byte RIDE_AND_DEDUCTION_FROM_SV_NOT_NEGATIVE = (byte) 0xD220;
     private final byte RIDE_AND_DEDUCTION_FROM_SV_NEGATIVE = (byte) 0xD320;
@@ -43,24 +42,45 @@ public class Ride {
     @Getter(AccessLevel.NONE)
     private Route.Station endingStation;
 
-    public Ride() {
+    public Ride(@NonNull ReadWriteInCard readWriteInCard) {
        try {
-           assert readWriteInCard != null;
-           readWriteInCard.readData();
+           this.readWriteInCard = readWriteInCard;
+           FelicaCard felicaCard = this.readWriteInCard.readData();
+           this.attributeInfo = felicaCard.getFelicaCardDetail().getAttributeInfo();
+           this.ePurseInfo = felicaCard.getFelicaCardDetail().getEPurseInfo();
+           this.storedLogInformation = felicaCard.getFelicaCardDetail().getStoredLogInformation();
+           this.gateAccessLogInformation = felicaCard.getFelicaCardDetail().getGateAccessLogInformation();
+           this.gateAccessLogInformationForTransfer = felicaCard.getFelicaCardDetail().getGateAccessLogInformationForTransfer();
+
+           // update data
+           updateAttributeInfo();
+           updateEPurseInfo();
+           updateStoredValueLog();
+           updateAccessLogInformation();
+           updateTransferAccessLogInformation();
        }catch (Exception e){
            Log.d("RIDE", "can not read data from card");
 //           e.printStackTrace();
        }
     }
 
+    public void setStartingPlace(String startingPlace) {
+        this.startingPlace = startingPlace;
+        this.startingStation = getStationCode(startingPlace);
+    }
+    public void setEndingPlace(String endingPlace) {
+        this.endingPlace = endingPlace;
+        this.endingStation = getStationCode(endingPlace);
+    }
+
     private void updateAttributeInfo() {
         if (attributeInfo != null) {
-            int transId =Utils.byteToInteger(attributeInfo.getBinTxnDataId())+1;
-            attributeInfo.setBinTxnDataId(Utils.hexToByte(String.format("%04X", transId)));
+            int transId =Utils.byteToInteger(attributeInfo.getTxnDataId())+1;
+            attributeInfo.setTxnDataId(Utils.hexToByte(String.format("%04X", transId)));
             if(isNegative){
                 int maxFare = endingStation.getPosition()> startingStation.getPosition()?startingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
-                int negativeValue = Math.abs(maxFare - Utils.byteToInteger(attributeInfo.getBinNegativeValue()));
-                attributeInfo.setBinNegativeValue(Utils.hexToByte(String.format("%04X",negativeValue)));
+                int negativeValue = Math.abs(maxFare - Utils.byteToInteger(attributeInfo.getNegativeValue()));
+                attributeInfo.setNegativeValue(Utils.hexToByte(String.format("%04X",negativeValue)));
             }
         }
     }
@@ -99,7 +119,7 @@ public class Ride {
 
         if(isNegative){
             storedLogInformation.setServiceClassificationCode((byte) 0xD3);
-            storedLogInformation.setCardBalance(Utils.convertToTwosComplement(-Integer.parseInt(Utils.byteToHex(attributeInfo.getBinNegativeValue()), 16),3));
+            storedLogInformation.setCardBalance(Utils.convertToTwosComplement(-Integer.parseInt(Utils.byteToHex(attributeInfo.getNegativeValue()), 16),3));
         } else{
             storedLogInformation.setServiceClassificationCode((byte) 0xD2);
             storedLogInformation.setCardBalance(Arrays.copyOfRange(ePurseInfo.getBinRemainingSV(),0,3));
@@ -107,7 +127,7 @@ public class Ride {
     }
     private void updateAccessLogInformation(){
         assert gateAccessLogInformation !=null;
-        String statusFlagInBit = "110010"+(attributeInfo.getBinDiscountCode()==0x00?"0":"1")+"000000000";
+        String statusFlagInBit = "110010"+(attributeInfo.getDiscountCode()==0x00?"0":"1")+"000000000";
         gateAccessLogInformation.setStatusFlag(Utils.hexToByte(String.format("%04X",Integer.parseInt(statusFlagInBit,2))));
         Map<String,String> date = Utils.getYearMonthDateHourMinute();
         String day = date.get("year")+date.get("month")+date.get("day");
@@ -141,8 +161,10 @@ public class Ride {
         gateAccessLogInformationForTransfer.setBlock1(block1);
     }
     private Route.Station getStationCode(String stationName){
+        assert routeName !=null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             for (int i = 0; i < route.getNumberOfRoute(); i++) {
+                if(!TextUtils.equals(this.routeName,route.getRouteName().get(i))) continue;;
                 for(Route.Station station: Objects.requireNonNull(route.getStations().get(route.getRouteName().get(i)))){
                     if(TextUtils.equals(station.getName(),stationName)){
                         return station;
@@ -154,4 +176,19 @@ public class Ride {
         return null;
     }
 //    private void update
+
+    public byte[] getDataForWrite(){
+        byte[] attributeInfoData = attributeInfo.getData();
+        byte[] ePurseData = ePurseInfo.getData();
+        byte[] storageInfoData = storedLogInformation.getData();
+        byte[] gateAccessLogData = gateAccessLogInformation.getData();
+        byte[] gateAccessLogTransferData = gateAccessLogInformationForTransfer.getData();
+        ByteBuffer byteBuffer = ByteBuffer.allocate(attributeInfoData.length+ ePurseData.length+storageInfoData.length+gateAccessLogData.length+gateAccessLogTransferData.length);
+        byteBuffer.put(attributeInfoData);
+        byteBuffer.put(ePurseData);
+        byteBuffer.put(storageInfoData);
+        byteBuffer.put(gateAccessLogData);
+        byteBuffer.put(gateAccessLogTransferData);
+        return byteBuffer.array();
+    }
 }

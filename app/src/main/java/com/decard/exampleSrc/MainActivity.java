@@ -967,8 +967,8 @@ public class MainActivity extends AppCompatActivity {
         int i = felicaCard.iWaitForAndAnalyzeFeliCa();
         if(i!=0){
             appendLog("Felica card analyze successfully");
-            appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getBinCardControlCode());
-            appendLog("txnid :"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getAttributeInfo().getBinTxnDataId()));
+            appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getCardControlCode());
+            appendLog("txnid :"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getAttributeInfo().getTxnDataId()));
             appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getName()));
             appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getPhone()));
             appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBirthday()));

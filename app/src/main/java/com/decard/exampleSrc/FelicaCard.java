@@ -6,7 +6,7 @@ import com.decard.NDKMethod.BasicOper;
 import com.decard.exampleSrc.model.AttributeInfo;
 import com.decard.exampleSrc.model.EPurseInfo;
 import com.decard.exampleSrc.model.FelicaCardDetail;
-import com.decard.exampleSrc.model.GateAccessLog;
+import com.decard.exampleSrc.model.GateAccessLogInformation;
 import com.decard.exampleSrc.model.GateAccessLogInformationForTransfer;
 import com.decard.exampleSrc.model.GeneralInfo;
 import com.decard.exampleSrc.model.IssuerInfo;
@@ -102,25 +102,25 @@ public class FelicaCard implements ReadWriteInCard {
         EPurseInfo ePurseInfo = EPurseInfo.generateData(Arrays.copyOfRange(bytes, 16 * 7, 16 * 8));
         OperatorInfo operatorInfo = OperatorInfo.generateData(Arrays.copyOfRange(bytes, 16 * 8, 16 * 9));
         StoredLogInformation storedLogInformation = StoredLogInformation.generateData(Arrays.copyOfRange(bytes, 16 * 9, 16 * 10));
-        GateAccessLog gateAccessLog = GateAccessLog.generateData(Arrays.copyOfRange(bytes, 16 * 10, 16 * 11));
+        GateAccessLogInformation gateAccessLogInformation = GateAccessLogInformation.generateData(Arrays.copyOfRange(bytes, 16 * 10, 16 * 11));
         GateAccessLogInformationForTransfer gateAccessLogInformationForTransfer = GateAccessLogInformationForTransfer.generateData(Arrays.copyOfRange(bytes, 16 * 11, 16 * 13));
         GeneralInfo generalInfo = GeneralInfo.builder()
                 .binCardID(idi)
                 .binReCycleCounter(issuerInfo.getRecycleCounter())
                 .lngRemainingSV(Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4))
                 .lngCashBackData(Utils.charArrayToIntLE(ePurseInfo.getBinCashbackData(), 4))
-                .intNegativeValue((short) Utils.charArrayToIntLE(attributeInfo.getBinNegativeValue(), 2))
+                .intNegativeValue((short) Utils.charArrayToIntLE(attributeInfo.getNegativeValue(), 2))
                 .build();
-        if ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0xC0) {
+        if ((attributeInfo.getCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0xC0) {
             generalInfo.setBinCardType((byte) 0); // RAPIDPASS_SVC_CARD
         }
-        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x10) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+        else if (((attributeInfo.getCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x10) && ((attributeInfo.getCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
             generalInfo.setBinCardType((byte) 10); // RAPIDPASS_OPERATOR_CARD
         }
-        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x20) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+        else if (((attributeInfo.getCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x20) && ((attributeInfo.getCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
             generalInfo.setBinCardType((byte) 11); // RAPIDPASS_NEXT_CARD
         }
-        else if (((attributeInfo.getBinCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x30) && ((attributeInfo.getBinCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
+        else if (((attributeInfo.getCardFunctionCode()[1] & (byte) 0x30) == (byte) 0x30) && ((attributeInfo.getCardFunctionCode()[0] & (byte) 0xFE) == (byte) 0x02)) {
             generalInfo.setBinCardType((byte) 12); // RAPIDPASS_PREV_CARD
         }
         else {
@@ -128,7 +128,7 @@ public class FelicaCard implements ReadWriteInCard {
         }
 
         this.felicaCardDetail = new FelicaCardDetail(generalInfo, issuerInfo, personalInfo,
-                attributeInfo, ePurseInfo, operatorInfo, storedLogInformation, gateAccessLog,gateAccessLogInformationForTransfer);
+                attributeInfo, ePurseInfo, operatorInfo, storedLogInformation, gateAccessLogInformation,gateAccessLogInformationForTransfer);
 
     }
 
@@ -245,11 +245,11 @@ public class FelicaCard implements ReadWriteInCard {
     }
 
     @Override
-    public int readData() throws Exception {
+    public FelicaCard readData() throws Exception {
         if (iWaitForAndAnalyzeFeliCa() == 0) {
-            return 0;
+            return null;
         }
-        return 1;
+        return this;
     }
 
     @Override
@@ -433,7 +433,7 @@ public class FelicaCard implements ReadWriteInCard {
 
     public void writeEPurseInfoForRecharge(EPurseInfo ePurseInfo) {
         int balance = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4) + Utils.charArrayToIntLE(new byte[]{0x64, 0x00, 0x00, 0x00}, 4)
-                - Utils.charArrayToIntLE(this.felicaCardDetail.getAttributeInfo().getBinNegativeValue(), 2);
+                - Utils.charArrayToIntLE(this.felicaCardDetail.getAttributeInfo().getNegativeValue(), 2);
 //        byte[] newBalance = new byte[4];
         Log.d("new balance", balance + "");
         ePurseInfo.setBinRemainingSV(Utils.intToCharArrayLE(balance));
@@ -505,10 +505,10 @@ public class FelicaCard implements ReadWriteInCard {
     }
 
     public void writeAttributeInformationBlock(AttributeInfo attributeInfo) {
-        String hex = Utils.byteToHex(attributeInfo.getBinTxnDataId());
+        String hex = Utils.byteToHex(attributeInfo.getTxnDataId());
         int i = Integer.parseInt(hex, 16);
         String newTxnId = String.format("%04X", i + 1);
-        attributeInfo.setBinTxnDataId(Utils.hexToByte(newTxnId));
+        attributeInfo.setTxnDataId(Utils.hexToByte(newTxnId));
     }
 
     private int writeBlockData(int blockNum, int blockLen, byte[] blockList, byte[] blockData) throws Exception {
