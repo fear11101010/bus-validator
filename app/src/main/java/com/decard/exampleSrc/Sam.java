@@ -42,9 +42,57 @@ public class Sam {
         this.samSlot = samSlot;
     }
 
-    public String initSam() {
+    public String initSam() throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         String[] result = BasicOper.dc_setcpu(samSlot).split("\\|", -1);
         Log.d("sam_init", String.format("code :%s,data :%s", result[0], result[1]));
+        String samNormalModeData = setToNormalMode();
+        if (resetSam()!=null){
+            Log.d("initSam: ","sam reset successfully---"+samNormalModeData);
+        }else {
+            Log.d("initSam: ","can not reset sam can not set to normal mode");
+            return null;
+        }
+        if (samNormalModeData!=null){
+            Log.d("initSam: ","sam set to normal mode successfully---"+samNormalModeData);
+        }else {
+            Log.d("initSam: ","sam can not set to normal mode");
+            return null;
+        }
+        String samAttention = sendAttention();
+        if (samAttention!=null){
+            Log.d("initSam: ","sam attention send successfully---"+samAttention);
+        }else {
+            Log.d("initSam: ","sam can not send attention");
+            return null;
+        }
+        String samAuth1 = sendAuth1();
+        if (samAuth1!=null){
+            Log.d("initSam: ","sam auth1 send successfully---"+samAuth1);
+        }else {
+            Log.d("initSam: ","sam can not send auth1");
+            return null;
+        }
+        String samAuth1Result = checkAuth1Result(samAuth1);
+        if (samAuth1Result!=null){
+            Log.d("initSam: ","sam auth1 result check successfully---"+samAuth1Result);
+        }else {
+            Log.d("initSam: ","sam auth1 result check failed");
+            return null;
+        }
+        String samAuth2 = sendAuth2();
+        if (samAuth2!=null){
+            Log.d("initSam: ","sam auth2 send successfully---"+samAuth2);
+        }else {
+            Log.d("initSam: ","sam can not send auth2");
+            return null;
+        }
+        String samAuth2Result = checkAuth2Result(samAuth2);
+        if (samAuth2Result!=null){
+            Log.d("initSam: ","sam auth2 result check successfully---"+samAuth2Result);
+        }else {
+            Log.d("initSam: ","sam auth2 result check failed");
+            return null;
+        }
         return result[0];
     }
 

@@ -33,6 +33,7 @@ import com.decard.exampleSrc.desfire.ev1.model.key.DesfireKeyType;
 import com.decard.exampleSrc.felica.FeliCa;
 import com.decard.exampleSrc.felica.Util;
 import com.decard.exampleSrc.mifarePlus.MifarePlus;
+import com.decard.exampleSrc.model.Ride;
 import com.decard.exampleSrc.reader.P18QDesfireEV;
 import com.decard.exampleSrc.reader.P18QMifarePlus;
 import com.decard.exampleSrc.samav2.SAMP18Q;
@@ -246,6 +247,8 @@ public class MainActivity extends AppCompatActivity {
         } else{
             isAllPermissionGranted.set(true);
         }
+        com.decard.exampleSrc.Utils.createFile(this);
+        com.decard.exampleSrc.Utils.initializeRoute(this);
 
         //qrCodeThread();
     }
@@ -253,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 //        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == 1) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 isAllPermissionGranted.set(permissions.length == this.permissions.size() && Arrays.stream(grantResults).allMatch(r -> r == PackageManager.PERMISSION_GRANTED));
@@ -893,8 +897,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     int TSAM(int samSlot) throws Exception {
-        String apdu = "0084000008";
-        String rwSamNumber = "";
         String[] resultArr;
         Sam sam = new Sam(samSlot);
         if(sam.initSam().equals("0000")){
@@ -904,54 +906,7 @@ public class MainActivity extends AppCompatActivity {
             appendLog("dc_setcpu error ");
             return -1;
         }
-        if(sam.resetSam().equals("0000")){
-            appendLog("dc_setcpu success");
-        } else{
-            appendLog("sam reset error");
-            return -2;
-        }
-        String samNormalModeData = sam.setToNormalMode();
-        if (samNormalModeData!=null){
-            appendLog("sam set to normal mode successfully---"+samNormalModeData);
-        }else {
-            appendLog("sam can not set to normal mode");
-            return -4;
-        }
-        String samAttention = sam.sendAttention();
-        if (samAttention!=null){
-            appendLog("sam attention send successfully---"+samAttention);
-        }else {
-            appendLog("sam can not send attention");
-            return -5;
-        }
-        String samAuth1 = sam.sendAuth1();
-        if (samAuth1!=null){
-            appendLog("sam auth1 send successfully---"+samAuth1);
-        }else {
-            appendLog("sam can not send auth1");
-            return -6;
-        }
-        String samAuth1Result = sam.checkAuth1Result(samAuth1);
-        if (samAuth1Result!=null){
-            appendLog("sam auth1 result check successfully---"+samAuth1Result);
-        }else {
-            appendLog("sam auth1 result check failed");
-            return -7;
-        }
-        String samAuth2 = sam.sendAuth2();
-        if (samAuth2!=null){
-            appendLog("sam auth2 send successfully---"+samAuth2);
-        }else {
-            appendLog("sam can not send auth2");
-            return -8;
-        }
-        String samAuth2Result = sam.checkAuth2Result(samAuth2);
-        if (samAuth2Result!=null){
-            appendLog("sam auth2 result check successfully---"+samAuth2Result);
-        }else {
-            appendLog("sam auth2 result check failed");
-            return -9;
-        }
+
         FelicaCard felicaCard = new FelicaCard(sam);
         String res = felicaCard.detectFelicaCard();
         if(!TextUtils.isEmpty(res)){
@@ -959,71 +914,27 @@ public class MainActivity extends AppCompatActivity {
             appendLog("IDm---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getIDm()));
             appendLog("PMm---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getPMm()));
             appendLog("SystemCode---->"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getSystemCode()));
-        } else{
+        }
+        else{
             appendLog("Felica card detect failed");
             return -10;
         }
 //        felicaCard.readOpenBlock();
-        int i = felicaCard.iWaitForAndAnalyzeFeliCa();
+        Ride ride = new Ride(felicaCard);
+        ride.setRouteName("Abudullahpur to Motijheel");
+        ride.setStartingPlace("Abudullahpur");
+        ride.setNegative(false);
+        int i = ride.writeData();
+//        ride.setEndingPlace("Motijheel");
         if(i!=0){
-            appendLog("Felica card analyze successfully");
-            appendLog("Card control code :"+felicaCard.getFelicaCardDetail().getAttributeInfo().getCardControlCode());
-            appendLog("txnid :"+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getAttributeInfo().getTxnDataId()));
-            appendLog("name: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getName()));
-            appendLog("phone: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getPhone()));
-            appendLog("birth day: "+new String(felicaCard.getFelicaCardDetail().getPersonalInfo().getBirthday()));
-            appendLog("reserved: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getPersonalInfo().getReserved()));
-            appendLog("getLngRemainingSV in hex: "+ com.decard.exampleSrc.Utils.byteToHex(felicaCard.getFelicaCardDetail().getEPurseInfo().getBinRemainingSV()));
-            appendLog("getLngRemainingSV: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngRemainingSV());
-            appendLog("getIntNegativeValue: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getIntNegativeValue());
-            appendLog("getLngCashBackData: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getLngCashBackData());
-            appendLog("rapidpass card type: "+felicaCard.getFelicaCardDetail().getGeneralInfo().getBinCardType());
-        } else{
-            appendLog("Can not analyze Felica card");
+            appendLog("write in card successfully");
+            }
+        else{
+            appendLog("Can not write in card");
             return -11;
         }
         appendLog("Trying to update balance");
-        /*String r = felicaCard.readOpenBlock();
-        if(TextUtils.isEmpty(r)){
-            appendLog("Can not read open block");
-            return -11;
-        } else {
-            Log.d("open block data", r);
-            appendLog("open block data :"+r);
-        }*/
 
-
-        /*i = felicaCard.updateBalance();
-        if(i==0){
-            appendLog("update balance failed");
-            return -12;
-        }
-        appendLog("update balance successful (probably)");*/
-
-        /*resultArr = BasicOper.dc_setcpu(samSlot).split("\\|", -1);
-        if (resultArr[0].equals("0000")) {
-            appendLog("dc_setcpu success");
-        } else {
-            appendLog("dc_setcpu error " + "error code = " + resultArr[0] + " error msg = " + resultArr[1]);
-            return -1;
-        }
-        resultArr = BasicOper.dc_cpureset_hex().split("\\|", -1);
-        if (resultArr[0].equals("0000")) {
-            appendLog("dc_cpureset_hex success," + "ATR/ATS = " + resultArr[1]);
-        } else {
-            appendLog("dc_cpureset_hex " + "error code = " + resultArr[0] + " error msg = " + resultArr[1]);
-            return -2;
-        }*/
-
-
-
-        /*resultArr = BasicOper.dc_cpuapdu_hex(apdu).split("\\|", -1);
-        if (resultArr[0].equals("0000")) {
-            appendLog("dc_cpuapdu_hex " + "success response = " + resultArr[1]);
-        } else {
-            appendLog("dc_cpuapdu_hex " + "error code = " + resultArr[0] + " error msg = " + resultArr[1]);
-            return -2;
-        }*/
         resultArr = BasicOper.dc_cpudown().split("\\|", -1);
         if (resultArr[0].equals("0000")) {
             appendLog("dc_cpudown " + "success");

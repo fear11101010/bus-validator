@@ -24,7 +24,7 @@ import java.util.stream.IntStream;
 
 public class Utils {
     public static final byte[] AUTH_KEY = {0x6C, (byte) 0xF9, (byte) 0xB1, (byte) 0xC8, 0x44, (byte) 0xC2, 0x6D, (byte) 0x9D, (byte) 0xA3, 0x0E, (byte) 0xF0, 0x62, 0x13, (byte) 0xC9, 0x75, (byte) 0xD1};
-    private static Route route;
+    public static Route route;
 
     public static String byteToHex(byte[] bytes) {
         StringBuilder stringBuilder = new StringBuilder();

@@ -33,6 +33,8 @@ public class Ride {
     private String startingPlace;
     private String endingPlace;
     private String routeName;
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
     private Route route;
     private boolean isNegative;
     @Setter(AccessLevel.NONE)
@@ -51,13 +53,6 @@ public class Ride {
            this.storedLogInformation = felicaCard.getFelicaCardDetail().getStoredLogInformation();
            this.gateAccessLogInformation = felicaCard.getFelicaCardDetail().getGateAccessLogInformation();
            this.gateAccessLogInformationForTransfer = felicaCard.getFelicaCardDetail().getGateAccessLogInformationForTransfer();
-
-           // update data
-           updateAttributeInfo();
-           updateEPurseInfo();
-           updateStoredValueLog();
-           updateAccessLogInformation();
-           updateTransferAccessLogInformation();
        }catch (Exception e){
            Log.d("RIDE", "can not read data from card");
 //           e.printStackTrace();
@@ -72,6 +67,16 @@ public class Ride {
         this.endingPlace = endingPlace;
         this.endingStation = getStationCode(endingPlace);
     }
+
+    private void updateData() {
+        // update data
+        updateAttributeInfo();
+        updateEPurseInfo();
+        updateStoredValueLog();
+        updateAccessLogInformation();
+        updateTransferAccessLogInformation();
+    }
+
 
     private void updateAttributeInfo() {
         if (attributeInfo != null) {
@@ -163,7 +168,7 @@ public class Ride {
     private Route.Station getStationCode(String stationName){
         assert routeName !=null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            for (int i = 0; i < route.getNumberOfRoute(); i++) {
+            for (int i = 0; i < Utils.route.getNumberOfRoute(); i++) {
                 if(!TextUtils.equals(this.routeName,route.getRouteName().get(i))) continue;;
                 for(Route.Station station: Objects.requireNonNull(route.getStations().get(route.getRouteName().get(i)))){
                     if(TextUtils.equals(station.getName(),stationName)){
@@ -177,18 +182,75 @@ public class Ride {
     }
 //    private void update
 
-    public byte[] getDataForWrite(){
+    public int writeData(){
+        // update data
+        updateData();
+
         byte[] attributeInfoData = attributeInfo.getData();
         byte[] ePurseData = ePurseInfo.getData();
         byte[] storageInfoData = storedLogInformation.getData();
         byte[] gateAccessLogData = gateAccessLogInformation.getData();
         byte[] gateAccessLogTransferData = gateAccessLogInformationForTransfer.getData();
+
+        // make data
+
         ByteBuffer byteBuffer = ByteBuffer.allocate(attributeInfoData.length+ ePurseData.length+storageInfoData.length+gateAccessLogData.length+gateAccessLogTransferData.length);
         byteBuffer.put(attributeInfoData);
         byteBuffer.put(ePurseData);
         byteBuffer.put(storageInfoData);
         byteBuffer.put(gateAccessLogData);
         byteBuffer.put(gateAccessLogTransferData);
-        return byteBuffer.array();
+
+        // write data
+
+        int serviceNumber = 5;
+        byte[] serviceCodeList = new byte[serviceNumber * 4];
+        serviceCodeList[0] = (byte) 0x08;
+        serviceCodeList[1] = (byte) 0x13;
+        serviceCodeList[2] = (byte) 0x00;
+        serviceCodeList[3] = (byte) 0x01;
+        serviceCodeList[4] = (byte) 0x10;
+        serviceCodeList[5] = (byte) 0x14;
+        serviceCodeList[6] = (byte) 0x00;
+        serviceCodeList[7] = (byte) 0x01;
+        serviceCodeList[8] = (byte) 0x0C;
+        serviceCodeList[9] = (byte) 0x22;
+        serviceCodeList[10] = (byte) 0x00;
+        serviceCodeList[11] = (byte) 0x01;
+        serviceCodeList[12] = (byte) 0x0C;
+        serviceCodeList[13] = (byte) 0x25;
+        serviceCodeList[14] = (byte) 0x00;
+        serviceCodeList[15] = (byte) 0x01;
+        serviceCodeList[16] = (byte) 0x08;
+        serviceCodeList[17] = (byte) 0x26;
+        serviceCodeList[18] = (byte) 0x00;
+        serviceCodeList[19] = (byte) 0x01;
+
+        // block number
+
+        int blockNumber = 7;
+        byte[] blockNumberList = new byte[blockNumber * 2];
+        blockNumberList[0] = (byte) 0x80;
+        blockNumberList[1] = (byte) 0x00;
+        blockNumberList[2] = (byte) 0x80;
+        blockNumberList[3] = (byte) 0x01;
+        blockNumberList[4] = (byte) 0x81;
+        blockNumberList[5] = (byte) 0x00;
+        blockNumberList[6] = (byte) 0x82;
+        blockNumberList[7] = (byte) 0x00;
+        blockNumberList[8] = (byte) 0x83;
+        blockNumberList[9] = (byte) 0x00;
+        blockNumberList[10] = (byte) 0x84;
+        blockNumberList[11] = (byte) 0x00;
+        blockNumberList[12] = (byte) 0x84;
+        blockNumberList[13] = (byte) 0x01;
+
+        try {
+            return readWriteInCard.writeInCard(serviceNumber,serviceCodeList,blockNumber,blockNumberList,byteBuffer.array());
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.d("writeData: ", e.getMessage());
+            return -1;
+        }
     }
 }
