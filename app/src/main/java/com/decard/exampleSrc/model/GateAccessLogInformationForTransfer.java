@@ -103,7 +103,7 @@ public class GateAccessLogInformationForTransfer {
         byteBuffer.put(this.block0.transferStation3);
         byteBuffer.put(this.block0.fareAllocationAmountForOwnLine);
         byteBuffer.put(this.block0.fareAllocationAmountForOtherLine);
-        byteBuffer.put(this.block0.fareAllocationAmountForOtherLine);
+//        byteBuffer.put(this.block0.fareAllocationAmountForOtherLine);
         byteBuffer.put(this.block0.reserved);
         byteBuffer.put(this.block1.amountOfTemporaryFare);
         byteBuffer.put(this.block1.stationForTemporaryFareCalculation);

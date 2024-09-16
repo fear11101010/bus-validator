@@ -43,7 +43,7 @@ public class EPurseInfo {
                 .binCashbackData(Arrays.copyOfRange(data,4,8))
                 .binCompoundData(Arrays.copyOfRange(data,8,13))
                 .binPaymentMethod(data[13])
-                .binExecutionId(Arrays.copyOfRange(data,14,2))
+                .binExecutionId(Arrays.copyOfRange(data,14,16))
                 .build();
     }
     /**

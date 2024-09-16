@@ -923,6 +923,7 @@ public class MainActivity extends AppCompatActivity {
         Ride ride = new Ride(felicaCard);
         ride.setRouteName("Abudullahpur to Motijheel");
         ride.setStartingPlace("Abudullahpur");
+        ride.setEndingPlace("Motijheel");
         ride.setNegative(false);
         int i = ride.writeData();
 //        ride.setEndingPlace("Motijheel");

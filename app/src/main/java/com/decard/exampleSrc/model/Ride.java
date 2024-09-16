@@ -33,9 +33,9 @@ public class Ride {
     private String startingPlace;
     private String endingPlace;
     private String routeName;
-    @Setter(AccessLevel.NONE)
+    /*@Setter(AccessLevel.NONE)
     @Getter(AccessLevel.NONE)
-    private Route route;
+    private Route route;*/
     private boolean isNegative;
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.NONE)
@@ -83,7 +83,7 @@ public class Ride {
             int transId =Utils.byteToInteger(attributeInfo.getTxnDataId())+1;
             attributeInfo.setTxnDataId(Utils.hexToByte(String.format("%04X", transId)));
             if(isNegative){
-                int maxFare = endingStation.getPosition()> startingStation.getPosition()?startingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+                int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
                 int negativeValue = Math.abs(maxFare - Utils.byteToInteger(attributeInfo.getNegativeValue()));
                 attributeInfo.setNegativeValue(Utils.hexToByte(String.format("%04X",negativeValue)));
             }
@@ -94,7 +94,7 @@ public class Ride {
         int executionId = Utils.byteToInteger(ePurseInfo.getBinExecutionId()) + 1;
         ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04X",executionId)));
 
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?startingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
         int sv = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4);
         if(isNegative){
 //            ePurseInfo.setBinCashbackData(Utils.hexToByte(String.format("%08X",sv)));
@@ -117,8 +117,8 @@ public class Ride {
         day = String.format("%04X",Integer.parseInt(day,2));
         storedLogInformation.setDate(Utils.hexToByte(day));
         String time = date.get("hour")+date.get("minute")+"00000";
-        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X",Integer.parseInt(day,2)))[0]);
-        storedLogInformation.setPlace1(Utils.hexToByte(startingStation.getCode()));
+        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X",Integer.parseInt(time,2)))[0]);
+        storedLogInformation.setPlace1(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
         storedLogInformation.setPlace2(Utils.hexToByte("0000"));
         storedLogInformation.setStoredValueLogId(ePurseInfo.getBinExecutionId());
 
@@ -139,19 +139,19 @@ public class Ride {
         gateAccessLogInformation.setDate(Utils.hexToByte(String.format("%04X",Integer.parseInt(day,2))));
         String time = "000"+date.get("hour")+"00"+date.get("minute");
         gateAccessLogInformation.setTime(Utils.hexToByte(String.format("%04X",Integer.parseInt(time,2))));
-        gateAccessLogInformation.setCurrentStationCode(Utils.hexToByte(startingStation.getCode()));
+        gateAccessLogInformation.setCurrentStationCode(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
         gateAccessLogInformation.setCurrentEquipmentLocationNumber(Utils.hexToByte("0101"));
         gateAccessLogInformation.setAmountOfBasicFare(Utils.hexToByte("000000"));
 
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?startingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
         gateAccessLogInformation.setAmountOfDistanceFare(Utils.hexToByte(String.format("%06X",maxFare)));
     }
     private void updateTransferAccessLogInformation(){
         assert gateAccessLogInformationForTransfer !=null;
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?startingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
         GateAccessLogInformationForTransfer.Block0 block0 = new GateAccessLogInformationForTransfer.Block0();
         block0.setReserved(new byte[]{0x00,0x00});
-        block0.setOriginStation(Utils.hexToByte(startingStation.getCode()));
+        block0.setOriginStation(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
         block0.setTransferStation1(new byte[]{0x00,0x00});
         block0.setTransferStation2(new byte[]{0x00,0x00});
         block0.setTransferStation3(new byte[]{0x00,0x00});
@@ -169,8 +169,8 @@ public class Ride {
         assert routeName !=null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             for (int i = 0; i < Utils.route.getNumberOfRoute(); i++) {
-                if(!TextUtils.equals(this.routeName,route.getRouteName().get(i))) continue;;
-                for(Route.Station station: Objects.requireNonNull(route.getStations().get(route.getRouteName().get(i)))){
+                if(!TextUtils.equals(this.routeName,Utils.route.getRouteName().get(i))) continue;;
+                for(Route.Station station: Objects.requireNonNull(Utils.route.getStations().get(Utils.route.getRouteName().get(i)))){
                     if(TextUtils.equals(station.getName(),stationName)){
                         return station;
                     }
@@ -205,26 +205,26 @@ public class Ride {
 
         int serviceNumber = 5;
         byte[] serviceCodeList = new byte[serviceNumber * 4];
-        serviceCodeList[0] = (byte) 0x08;
-        serviceCodeList[1] = (byte) 0x13;
-        serviceCodeList[2] = (byte) 0x00;
-        serviceCodeList[3] = (byte) 0x01;
-        serviceCodeList[4] = (byte) 0x10;
-        serviceCodeList[5] = (byte) 0x14;
-        serviceCodeList[6] = (byte) 0x00;
-        serviceCodeList[7] = (byte) 0x01;
-        serviceCodeList[8] = (byte) 0x0C;
-        serviceCodeList[9] = (byte) 0x22;
-        serviceCodeList[10] = (byte) 0x00;
-        serviceCodeList[11] = (byte) 0x01;
-        serviceCodeList[12] = (byte) 0x0C;
-        serviceCodeList[13] = (byte) 0x25;
-        serviceCodeList[14] = (byte) 0x00;
-        serviceCodeList[15] = (byte) 0x01;
-        serviceCodeList[16] = (byte) 0x08;
-        serviceCodeList[17] = (byte) 0x26;
-        serviceCodeList[18] = (byte) 0x00;
-        serviceCodeList[19] = (byte) 0x01;
+        serviceCodeList[0] = (byte) 0x08; // Attribute information file
+        serviceCodeList[1] = (byte) 0x13; // Attribute information file
+        serviceCodeList[2] = (byte) 0x01; // Version key
+        serviceCodeList[3] = (byte) 0x00; // Version key
+        serviceCodeList[4] = (byte) 0x10; // e-Purse  file
+        serviceCodeList[5] = (byte) 0x14; // e-Purse  file
+        serviceCodeList[6] = (byte) 0x01; // Version key
+        serviceCodeList[7] = (byte) 0x00; // Version key
+        serviceCodeList[8] = (byte) 0x0C; // Stored value log information file
+        serviceCodeList[9] = (byte) 0x22; // Stored value log information file
+        serviceCodeList[10] = (byte) 0x01; // Version key
+        serviceCodeList[11] = (byte) 0x00; // Version key
+        serviceCodeList[12] = (byte) 0x0C; // Gate access log file
+        serviceCodeList[13] = (byte) 0x25; // Gate access log file
+        serviceCodeList[14] = (byte) 0x01; // Version key
+        serviceCodeList[15] = (byte) 0x00; // Version key
+        serviceCodeList[16] = (byte) 0x08;  // Gate access log file (for transfer)
+        serviceCodeList[17] = (byte) 0x26; // Gate access log file (for transfer)
+        serviceCodeList[18] = (byte) 0x01; // Version key
+        serviceCodeList[19] = (byte) 0x00; // Version key
 
         // block number
 

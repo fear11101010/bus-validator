@@ -20,18 +20,18 @@ public class Route {
     public static final Map<String,String> STATION_CODES = new HashMap<>();
 
     static {
-        STATION_CODES.put("Motijheel", String.format("%04X",Integer.parseInt("129010")));
-        STATION_CODES.put("Gulistan", String.format("%04X",Integer.parseInt("129013")));
-        STATION_CODES.put("Palton", String.format("%04X",Integer.parseInt("129016")));
-        STATION_CODES.put("Press Club", String.format("%04X",Integer.parseInt("129019")));
-        STATION_CODES.put("Shahabag", String.format("%04X",Integer.parseInt("129022")));
-        STATION_CODES.put("Farmgate", String.format("%04X",Integer.parseInt("129025")));
-        STATION_CODES.put("Banani", String.format("%04X",Integer.parseInt("129028")));
-        STATION_CODES.put("Khilket", String.format("%04X",Integer.parseInt("129031")));
-        STATION_CODES.put("Airport", String.format("%04X",Integer.parseInt("129034")));
-        STATION_CODES.put("Azompur", String.format("%04X",Integer.parseInt("129037")));
-        STATION_CODES.put("House Building", String.format("%04X",Integer.parseInt("129040")));
-        STATION_CODES.put("Abudullahpur", String.format("%04X",Integer.parseInt("129043")));
+        STATION_CODES.put("Motijheel", "129010");
+        STATION_CODES.put("Gulistan", "129013");
+        STATION_CODES.put("Palton", "129016");
+        STATION_CODES.put("Press Club", "129019");
+        STATION_CODES.put("Shahabag", "129022");
+        STATION_CODES.put("Farmgate", "129025");
+        STATION_CODES.put("Banani", "129028");
+        STATION_CODES.put("Khilket", "129031");
+        STATION_CODES.put("Airport", "129034");
+        STATION_CODES.put("Azompur", "129037");
+        STATION_CODES.put("House Building", "129040");
+        STATION_CODES.put("Abudullahpur", "129043");
     }
 
     @Data
