@@ -59,7 +59,7 @@ public class Ride {
             String serviceId = Utils.byteToHex(new byte[]{storedLogInformation.getServiceClassificationCode(), storedLogInformation.getContextCode()});
             this.rideStatus = Utils.convertByteArrayToBit(gateAccessLogInformation.getStatusFlag()).toCharArray()[15] == '1' &&
                     (serviceId.equals(RIDE_AND_DEDUCTION_FROM_SV_NEGATIVE) || serviceId.equals(RIDE_AND_DEDUCTION_FROM_SV_NOT_NEGATIVE)) &&
-                    startingStation != null;
+                    Utils.byteToHex(storedLogInformation.getPlace2()).equals("0000");
         } catch (Exception e) {
             Log.d("RIDE", "can not read data from card");
 //           e.printStackTrace();
