@@ -120,18 +120,18 @@ public class Utils {
     public static void createFile(Context context) {
         String data = "Number of route,1,Last update,20170503,effective date,20170503,end date,20991231\n" +
                 "Route name,Abudullahpur to Motijheel,number of bus stop,12\n" +
-                "Abudullahpur,0,45,45,45,45,45,45,60,60,60,60,60,0,45,45,60\n" +
-                "House Building,25,0,45,45,45,45,45,60,60,60,60,60,25,25,45,60\n" +
-                "Azompur,25,25,0,45,45,45,45,60,60,60,60,60,25,25,45,60\n" +
-                "Airport,25,25,25,0,40,40,40,55,55,55,55,55,25,25,40,55\n" +
-                "Khilket,25,25,25,25,0,40,40,55,55,55,55,55,25,25,25,60\n" +
-                "Banani,25,25,25,25,25,0,35,35,35,35,35,35,25,25,35,35\n" +
-                "Farmgate,45,45,45,40,40,35,0,25,25,25,25,25,35,45,25,25\n" +
-                "Shahabag,60,60,60,55,55,35,35,0,25,25,25,25,35,60,25,25\n" +
-                "Press Club,60,60,60,55,55,35,35,35,0,25,25,25,35,60,25,25\n" +
-                "Palton,60,60,60,55,55,35,35,35,35,0,25,25,35,60,25,25\n" +
-                "Gulistan,60,60,60,55,55,35,35,35,35,35,0,25,35,60,25,25\n" +
-                "Motijheel,60,60,60,55,55,35,35,35,35,35,35,0,35,60,0,35\n" +
+                "Abudullahpur,0,45,45,45,45,45,45,60,60,60,60,60,60\n" +
+                "House Building,25,0,45,45,45,45,45,60,60,60,60,60,60\n" +
+                "Azompur,25,25,0,45,45,45,45,60,60,60,60,60,60\n" +
+                "Airport,25,25,25,0,40,40,40,55,55,55,55,55,60\n" +
+                "Khilket,25,25,25,25,0,40,40,55,55,55,55,55,60\n" +
+                "Banani,25,25,25,25,25,0,35,35,35,35,35,35,60\n" +
+                "Farmgate,45,45,45,40,40,35,0,25,25,25,25,25,60\n" +
+                "Shahabag,60,60,60,55,55,35,35,0,25,25,25,25,60\n" +
+                "Press Club,60,60,60,55,55,35,35,35,0,25,25,25,60\n" +
+                "Palton,60,60,60,55,55,35,35,35,35,0,25,25,60\n" +
+                "Gulistan,60,60,60,55,55,35,35,35,35,35,0,25,60\n" +
+                "Motijheel,60,60,60,55,55,35,35,35,35,35,35,0,60\n" +
                 "number of record for route,14\n" +
                 "number of record for file,16";
         FileOutputStream fileOutputStream = null;
@@ -180,10 +180,7 @@ public class Utils {
                         stations[s].setPosition(s);
                         stations[s].setFare(fare);
                         stations[s].setCode(Route.STATION_CODES.get(words[0]));
-                        stations[s].setMinUpStreamFare(Integer.parseInt(words[stations.length]));
-                        stations[s].setMaxUpStreamFare(Integer.parseInt(words[stations.length + 1]));
-                        stations[s].setMinDownStreamFare(Integer.parseInt(words[stations.length + 2]));
-                        stations[s].setMaxDownStreamFare(Integer.parseInt(words[stations.length + 3]));
+                        stations[s].setMaxFare(Integer.parseInt(words[stations.length]));
                     }
                 }
             }
@@ -210,5 +207,13 @@ public class Utils {
     public static int byteToInteger(byte[] bytes){
         String hex = byteToHex(bytes);
         return Integer.parseInt(hex,16);
+    }
+
+    public static String convertByteArrayToBit(byte[] bytes){
+        StringBuilder bitString = new StringBuilder();
+        for (byte b : bytes) {
+            bitString.append(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0')).append(" ");
+        }
+        return bitString.toString().trim();
     }
 }

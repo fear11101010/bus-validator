@@ -42,10 +42,7 @@ public class Route {
         private String code;
         private int[] fare;
         private int position;
-        private int minUpStreamFare;
-        private int maxUpStreamFare;
-        private int minDownStreamFare;
-        private int maxDownStreamFare;
+        private int maxFare;
 
     }
 

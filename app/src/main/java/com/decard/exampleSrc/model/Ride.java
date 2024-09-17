@@ -20,8 +20,8 @@ import lombok.Setter;
 @Setter
 @Getter
 public class Ride {
-    private final byte RIDE_AND_DEDUCTION_FROM_SV_NOT_NEGATIVE = (byte) 0xD220;
-    private final byte RIDE_AND_DEDUCTION_FROM_SV_NEGATIVE = (byte) 0xD320;
+    private final String RIDE_AND_DEDUCTION_FROM_SV_NOT_NEGATIVE = "D220";
+    private final String RIDE_AND_DEDUCTION_FROM_SV_NEGATIVE = "D320";
 
     private AttributeInfo attributeInfo;
     private EPurseInfo ePurseInfo;
@@ -43,26 +43,36 @@ public class Ride {
     @Setter(AccessLevel.NONE)
     @Getter(AccessLevel.NONE)
     private Route.Station endingStation;
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    private boolean rideStatus;
 
     public Ride(@NonNull ReadWriteInCard readWriteInCard) {
-       try {
-           this.readWriteInCard = readWriteInCard;
-           FelicaCard felicaCard = this.readWriteInCard.readData();
-           this.attributeInfo = felicaCard.getFelicaCardDetail().getAttributeInfo();
-           this.ePurseInfo = felicaCard.getFelicaCardDetail().getEPurseInfo();
-           this.storedLogInformation = felicaCard.getFelicaCardDetail().getStoredLogInformation();
-           this.gateAccessLogInformation = felicaCard.getFelicaCardDetail().getGateAccessLogInformation();
-           this.gateAccessLogInformationForTransfer = felicaCard.getFelicaCardDetail().getGateAccessLogInformationForTransfer();
-       }catch (Exception e){
-           Log.d("RIDE", "can not read data from card");
+        try {
+            this.readWriteInCard = readWriteInCard;
+            FelicaCard felicaCard = this.readWriteInCard.readData();
+            this.attributeInfo = felicaCard.getFelicaCardDetail().getAttributeInfo();
+            this.ePurseInfo = felicaCard.getFelicaCardDetail().getEPurseInfo();
+            this.storedLogInformation = felicaCard.getFelicaCardDetail().getStoredLogInformation();
+            this.gateAccessLogInformation = felicaCard.getFelicaCardDetail().getGateAccessLogInformation();
+            this.gateAccessLogInformationForTransfer = felicaCard.getFelicaCardDetail().getGateAccessLogInformationForTransfer();
+            String serviceId = Utils.byteToHex(new byte[]{storedLogInformation.getServiceClassificationCode(), storedLogInformation.getContextCode()});
+            this.rideStatus = Utils.convertByteArrayToBit(gateAccessLogInformation.getStatusFlag()).toCharArray()[15] == '1' &&
+                    (serviceId.equals(RIDE_AND_DEDUCTION_FROM_SV_NEGATIVE) || serviceId.equals(RIDE_AND_DEDUCTION_FROM_SV_NOT_NEGATIVE)) &&
+                    startingStation != null;
+        } catch (Exception e) {
+            Log.d("RIDE", "can not read data from card");
 //           e.printStackTrace();
-       }
+        }
     }
 
     public void setStartingPlace(String startingPlace) {
         this.startingPlace = startingPlace;
         this.startingStation = getStationCode(startingPlace);
+        this.isNegative = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4) - startingStation.getMaxFare() < 0;
+
     }
+
     public void setEndingPlace(String endingPlace) {
         this.endingPlace = endingPlace;
         this.endingStation = getStationCode(endingPlace);
@@ -80,98 +90,104 @@ public class Ride {
 
     private void updateAttributeInfo() {
         if (attributeInfo != null) {
-            int transId =Utils.byteToInteger(attributeInfo.getTxnDataId())+1;
+            int transId = Utils.byteToInteger(attributeInfo.getTxnDataId()) + 1;
             attributeInfo.setTxnDataId(Utils.hexToByte(String.format("%04X", transId)));
-            if(isNegative){
-                int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+            if (isNegative) {
+                int maxFare = startingStation.getMaxFare();
                 int negativeValue = Math.abs(maxFare - Utils.byteToInteger(attributeInfo.getNegativeValue()));
-                attributeInfo.setNegativeValue(Utils.hexToByte(String.format("%04X",negativeValue)));
+                attributeInfo.setNegativeValue(Utils.hexToByte(String.format("%04X", negativeValue)));
             }
         }
     }
-    private void updateEPurseInfo(){
+
+    private void updateEPurseInfo() {
         assert ePurseInfo != null;
         int executionId = Utils.byteToInteger(ePurseInfo.getBinExecutionId()) + 1;
-        ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04X",executionId)));
+        ePurseInfo.setBinExecutionId(Utils.hexToByte(String.format("%04X", executionId)));
 
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
-        int sv = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(),4);
-        if(isNegative){
+        int maxFare = startingStation.getMaxFare();
+        int sv = Utils.charArrayToIntLE(ePurseInfo.getBinRemainingSV(), 4);
+        if (isNegative) {
 //            ePurseInfo.setBinCashbackData(Utils.hexToByte(String.format("%08X",sv)));
             ePurseInfo.setBinCashbackData(Utils.intToCharArrayLE(sv));
             ePurseInfo.setBinRemainingSV(Utils.intToCharArrayLE(0));
-        } else{
+        } else {
 //            ePurseInfo.setBinRemainingSV(Utils.hexToByte(String.format("%04X",sv-maxFare)));
-            ePurseInfo.setBinRemainingSV(Utils.intToCharArrayLE(sv-maxFare));
+            ePurseInfo.setBinRemainingSV(Utils.intToCharArrayLE(sv - maxFare));
 //            ePurseInfo.setBinCashbackData(Utils.hexToByte(String.format("%04X",maxFare)));
             ePurseInfo.setBinCashbackData(Utils.intToCharArrayLE(maxFare));
         }
     }
-    private void updateStoredValueLog(){
+
+    private void updateStoredValueLog() {
         assert storedLogInformation != null;
         storedLogInformation.setEquipmentClassificationCode((byte) 0x42);
         storedLogInformation.setContextCode((byte) 0x20);
         storedLogInformation.setPaymentMethodCode((byte) 0x00);
-        Map<String,String> date = Utils.getYearMonthDateHourMinute();
-        String day = date.get("year")+date.get("month")+date.get("day");
-        day = String.format("%04X",Integer.parseInt(day,2));
+        Map<String, String> date = Utils.getYearMonthDateHourMinute();
+        String day = date.get("year") + date.get("month") + date.get("day");
+        day = String.format("%04X", Integer.parseInt(day, 2));
         storedLogInformation.setDate(Utils.hexToByte(day));
-        String time = date.get("hour")+date.get("minute")+"00000";
-        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X",Integer.parseInt(time,2)))[0]);
-        storedLogInformation.setPlace1(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
+        String time = date.get("hour") + date.get("minute") + "00000";
+        storedLogInformation.setTime(Utils.hexToByte(String.format("%02X", Integer.parseInt(time, 2)))[0]);
+        storedLogInformation.setPlace1(Utils.hexToByte(String.format("%02x", Integer.parseInt(startingStation.getCode().substring(0, 3))) + String.format("%02x", Integer.parseInt(startingStation.getCode().substring(3)))));
         storedLogInformation.setPlace2(Utils.hexToByte("0000"));
         storedLogInformation.setStoredValueLogId(ePurseInfo.getBinExecutionId());
 
-        if(isNegative){
+        if (isNegative) {
             storedLogInformation.setServiceClassificationCode((byte) 0xD3);
-            storedLogInformation.setCardBalance(Utils.convertToTwosComplement(-Integer.parseInt(Utils.byteToHex(attributeInfo.getNegativeValue()), 16),3));
-        } else{
+            storedLogInformation.setCardBalance(Utils.convertToTwosComplement(-Integer.parseInt(Utils.byteToHex(attributeInfo.getNegativeValue()), 16), 3));
+        } else {
             storedLogInformation.setServiceClassificationCode((byte) 0xD2);
-            storedLogInformation.setCardBalance(Arrays.copyOfRange(ePurseInfo.getBinRemainingSV(),0,3));
+            storedLogInformation.setCardBalance(Arrays.copyOfRange(ePurseInfo.getBinRemainingSV(), 0, 3));
         }
     }
-    private void updateAccessLogInformation(){
-        assert gateAccessLogInformation !=null;
-        String statusFlagInBit = "110010"+(attributeInfo.getDiscountCode()==0x00?"0":"1")+"000000000";
-        gateAccessLogInformation.setStatusFlag(Utils.hexToByte(String.format("%04X",Integer.parseInt(statusFlagInBit,2))));
-        Map<String,String> date = Utils.getYearMonthDateHourMinute();
-        String day = date.get("year")+date.get("month")+date.get("day");
-        gateAccessLogInformation.setDate(Utils.hexToByte(String.format("%04X",Integer.parseInt(day,2))));
-        String time = "000"+date.get("hour")+"00"+date.get("minute");
-        gateAccessLogInformation.setTime(Utils.hexToByte(String.format("%04X",Integer.parseInt(time,2))));
-        gateAccessLogInformation.setCurrentStationCode(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
+
+    private void updateAccessLogInformation() {
+        assert gateAccessLogInformation != null;
+        String statusFlagInBit = "110010" + (attributeInfo.getDiscountCode() == 0x00 ? "0" : "1") + "000000000";
+        gateAccessLogInformation.setStatusFlag(Utils.hexToByte(String.format("%04X", Integer.parseInt(statusFlagInBit, 2))));
+        Map<String, String> date = Utils.getYearMonthDateHourMinute();
+        String day = date.get("year") + date.get("month") + date.get("day");
+        gateAccessLogInformation.setDate(Utils.hexToByte(String.format("%04X", Integer.parseInt(day, 2))));
+        String time = "000" + date.get("hour") + "00" + date.get("minute");
+        gateAccessLogInformation.setTime(Utils.hexToByte(String.format("%04X", Integer.parseInt(time, 2))));
+        gateAccessLogInformation.setCurrentStationCode(Utils.hexToByte(String.format("%02x", Integer.parseInt(startingStation.getCode().substring(0, 3))) + String.format("%02x", Integer.parseInt(startingStation.getCode().substring(3)))));
         gateAccessLogInformation.setCurrentEquipmentLocationNumber(Utils.hexToByte("0101"));
         gateAccessLogInformation.setAmountOfBasicFare(Utils.hexToByte("000000"));
 
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
-        gateAccessLogInformation.setAmountOfDistanceFare(Utils.hexToByte(String.format("%06X",maxFare)));
+        int maxFare = startingStation.getMaxFare();
+        gateAccessLogInformation.setAmountOfDistanceFare(Utils.hexToByte(String.format("%06X", maxFare)));
     }
-    private void updateTransferAccessLogInformation(){
-        assert gateAccessLogInformationForTransfer !=null;
-        int maxFare = endingStation.getPosition()> startingStation.getPosition()?endingStation.getMaxUpStreamFare():startingStation.getMaxDownStreamFare();
+
+    private void updateTransferAccessLogInformation() {
+        assert gateAccessLogInformationForTransfer != null;
+        int maxFare = startingStation.getMaxFare();
         GateAccessLogInformationForTransfer.Block0 block0 = new GateAccessLogInformationForTransfer.Block0();
-        block0.setReserved(new byte[]{0x00,0x00});
-        block0.setOriginStation(Utils.hexToByte(String.format("%02x",Integer.parseInt(startingStation.getCode().substring(0,3)))+String.format("%02x",Integer.parseInt(startingStation.getCode().substring(3)))));
-        block0.setTransferStation1(new byte[]{0x00,0x00});
-        block0.setTransferStation2(new byte[]{0x00,0x00});
-        block0.setTransferStation3(new byte[]{0x00,0x00});
-        block0.setFareAllocationAmountForOwnLine(Utils.hexToByte(String.format("%06X",maxFare)));
-        block0.setFareAllocationAmountForOtherLine(new byte[]{0x00,0x00,0x00});
+        block0.setReserved(new byte[]{0x00, 0x00});
+        block0.setOriginStation(Utils.hexToByte(String.format("%02x", Integer.parseInt(startingStation.getCode().substring(0, 3))) + String.format("%02x", Integer.parseInt(startingStation.getCode().substring(3)))));
+        block0.setTransferStation1(new byte[]{0x00, 0x00});
+        block0.setTransferStation2(new byte[]{0x00, 0x00});
+        block0.setTransferStation3(new byte[]{0x00, 0x00});
+        block0.setFareAllocationAmountForOwnLine(Utils.hexToByte(String.format("%06X", maxFare)));
+        block0.setFareAllocationAmountForOtherLine(new byte[]{0x00, 0x00, 0x00});
 
         GateAccessLogInformationForTransfer.Block1 block1 = new GateAccessLogInformationForTransfer.Block1();
-        block1.setReserved(Utils.hexToByte(String.format("%022X",0)));
-        block1.setAmountOfTemporaryFare(Utils.hexToByte(String.format("%06X",0)));
-        block1.setStationForTemporaryFareCalculation(Utils.hexToByte(String.format("%04X",0)));
+        block1.setReserved(Utils.hexToByte(String.format("%022X", 0)));
+        block1.setAmountOfTemporaryFare(Utils.hexToByte(String.format("%06X", 0)));
+        block1.setStationForTemporaryFareCalculation(Utils.hexToByte(String.format("%04X", 0)));
         gateAccessLogInformationForTransfer.setBlock0(block0);
         gateAccessLogInformationForTransfer.setBlock1(block1);
     }
-    private Route.Station getStationCode(String stationName){
-        assert routeName !=null;
+
+    private Route.Station getStationCode(String stationName) {
+        assert routeName != null;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             for (int i = 0; i < Utils.route.getNumberOfRoute(); i++) {
-                if(!TextUtils.equals(this.routeName,Utils.route.getRouteName().get(i))) continue;;
-                for(Route.Station station: Objects.requireNonNull(Utils.route.getStations().get(Utils.route.getRouteName().get(i)))){
-                    if(TextUtils.equals(station.getName(),stationName)){
+                if (!TextUtils.equals(this.routeName, Utils.route.getRouteName().get(i))) continue;
+                ;
+                for (Route.Station station : Objects.requireNonNull(Utils.route.getStations().get(Utils.route.getRouteName().get(i)))) {
+                    if (TextUtils.equals(station.getName(), stationName)) {
                         return station;
                     }
                 }
@@ -182,7 +198,7 @@ public class Ride {
     }
 //    private void update
 
-    public int writeData(){
+    public int writeData() {
         // update data
         updateData();
 
@@ -194,7 +210,7 @@ public class Ride {
 
         // make data
 
-        ByteBuffer byteBuffer = ByteBuffer.allocate(attributeInfoData.length+ ePurseData.length+storageInfoData.length+gateAccessLogData.length+gateAccessLogTransferData.length);
+        ByteBuffer byteBuffer = ByteBuffer.allocate(attributeInfoData.length + ePurseData.length + storageInfoData.length + gateAccessLogData.length + gateAccessLogTransferData.length);
         byteBuffer.put(attributeInfoData);
         byteBuffer.put(ePurseData);
         byteBuffer.put(storageInfoData);
@@ -246,7 +262,7 @@ public class Ride {
         blockNumberList[13] = (byte) 0x01;
 
         try {
-            return readWriteInCard.writeInCard(serviceNumber,serviceCodeList,blockNumber,blockNumberList,byteBuffer.array());
+            return readWriteInCard.writeInCard(serviceNumber, serviceCodeList, blockNumber, blockNumberList, byteBuffer.array());
         } catch (Exception e) {
             e.printStackTrace();
             Log.d("writeData: ", e.getMessage());
