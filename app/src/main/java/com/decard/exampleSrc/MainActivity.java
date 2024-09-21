@@ -33,7 +33,7 @@ import com.decard.exampleSrc.desfire.ev1.model.key.DesfireKeyType;
 import com.decard.exampleSrc.felica.FeliCa;
 import com.decard.exampleSrc.felica.Util;
 import com.decard.exampleSrc.mifarePlus.MifarePlus;
-import com.decard.exampleSrc.model.Ride;
+import com.decard.exampleSrc.model.RideAndAlight;
 import com.decard.exampleSrc.reader.P18QDesfireEV;
 import com.decard.exampleSrc.reader.P18QMifarePlus;
 import com.decard.exampleSrc.samav2.SAMP18Q;
@@ -920,12 +920,12 @@ public class MainActivity extends AppCompatActivity {
             return -10;
         }
 //        felicaCard.readOpenBlock();
-        Ride ride = new Ride(felicaCard);
-        ride.setRouteName("Abudullahpur to Motijheel");
-        ride.setStartingPlace("Abudullahpur");
-        ride.setEndingPlace("Motijheel");
-        ride.setNegative(false);
-        int i = ride.writeData();
+        RideAndAlight rideAndAlight = new RideAndAlight(felicaCard);
+        rideAndAlight.setRouteName("Abudullahpur to Motijheel");
+        rideAndAlight.setStartingPlace("Abudullahpur");
+        rideAndAlight.setEndingPlace("Motijheel");
+        rideAndAlight.setNegative(false);
+        int i = rideAndAlight.writeData();
 //        ride.setEndingPlace("Motijheel");
         if(i!=0){
             appendLog("write in card successfully");
