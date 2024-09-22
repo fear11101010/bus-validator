@@ -10,11 +10,15 @@ import com.decard.exampleSrc.model.Route;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -215,5 +219,79 @@ public class Utils {
             bitString.append(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0')).append(" ");
         }
         return bitString.toString().trim();
+    }
+
+
+     /*public void readBlackListFile(Context context){
+        FileInputStream inputStream = null;
+        try {
+            File file = new File(context.getFilesDir(), "Route_table_obj.dat");
+            if (!file.exists()) {
+                return;
+            }
+            inputStream = new FileInputStream(file);
+            byte[] fileContent = new byte[(int) file.length()];
+            int readStatus = inputStream.read(fileContent);
+            inputStream.close();
+            DateTimeFormatter formatter = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+            }
+                StringBuilder hexString = new StringBuilder();
+
+                // Convert byte array to hex string
+                for (byte b : fileContent) {
+                    hexString.append(String.format("%02X", b));
+                }
+
+                String strBulkBL = hexString.toString();
+
+                // Parse the data
+                for (int i = 168; i < strBulkBL.length(); i += 40) {
+                    if (i + 40 <= strBulkBL.length()) {
+
+                        MasterBlacklist masterBlacklist = null;
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                            masterBlacklist = MasterBlacklist
+                                    .builder()
+                                    .cardIdUnique(strBulkBL.substring(i, i + 18))
+                                    .registeredOn(LocalDateTime.parse(strBulkBL.substring(i + 18 + 6, i + 18 + 6 + 14), formatter))
+                                    .reasonCode(strBulkBL.substring(i + (18 + 6 + 14), i + (18 + 6 + 14 + 2)))
+                                    .build();
+                        }
+                        masterBlacklistList.add(masterBlacklist);
+                    }
+                }
+            fileOutputStream.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (fileOutputStream != null) {
+                try {
+                    fileOutputStream.close();
+                } catch (IOException e) {
+                    Log.d("finally block", e.getMessage());
+                }
+            }
+        }
+        List<MasterBlacklist> masterBlacklistList = new ArrayList<>();
+
+            log.info("Parsed {} blacklist entries", masterBlacklistList.size());
+
+            truncateTable();
+
+            masterBlacklistRepository.saveAll(masterBlacklistList);
+
+            // Print the results
+        } catch (IOException e) {
+            log.error("{}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }*/
+
+    public static boolean commonValidationCheck(byte[] cardFunctionCode){
+        char[] bits = convertByteArrayToBit(cardFunctionCode).toCharArray();
+            return bits[15] == '1' && bits[14] == '1' && bits[11] == '0' && bits[10] == '0' && bits[9] == '0'
+                    && (bits[8] == '0' || bits[8] == '1') && bits[6] == '1';
     }
 }
