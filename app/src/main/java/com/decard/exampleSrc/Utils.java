@@ -294,4 +294,13 @@ public class Utils {
             return bits[15] == '1' && bits[14] == '1' && bits[11] == '0' && bits[10] == '0' && bits[9] == '0'
                     && (bits[8] == '0' || bits[8] == '1') && bits[6] == '1';
     }
+    public static boolean isCardActive(byte statusFlag){
+        return (statusFlag & (1 << 7)) != 0 && (statusFlag & (1 << 6)) == 0;
+    }
+    public static boolean isVoidCard(byte cardControlCode){
+        return (cardControlCode & (1 << 7)) == 0 && (cardControlCode & (1 << 6)) == 0;
+    }
+    public static boolean isCardBlacklisted(byte cardControlCode){
+        return (cardControlCode & (1 << 7)) == 0 ;
+    }
 }
